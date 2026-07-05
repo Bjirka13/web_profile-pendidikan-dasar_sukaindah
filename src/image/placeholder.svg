@@ -1,0 +1,13 @@
+<svg width="1200" height="800" viewBox="0 0 1200 800" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="800" rx="40" fill="#F3F6FB"/>
+  <rect x="70" y="70" width="1060" height="660" rx="32" fill="white" stroke="#D9E2F0" stroke-width="6"/>
+  <rect x="140" y="170" width="300" height="220" rx="24" fill="#E2ECF9"/>
+  <rect x="480" y="170" width="580" height="40" rx="20" fill="#C8D9F0"/>
+  <rect x="480" y="235" width="460" height="20" rx="10" fill="#E0E8F2"/>
+  <rect x="480" y="275" width="520" height="20" rx="10" fill="#E0E8F2"/>
+  <rect x="140" y="430" width="920" height="180" rx="24" fill="#F7FAFF" stroke="#DCE7F7" stroke-width="4"/>
+  <circle cx="230" cy="520" r="70" fill="#1E6B3A" fill-opacity="0.16"/>
+  <path d="M230 470C250.5 470 266 485.5 266 506V560H194V506C194 485.5 209.5 470 230 470Z" fill="#1E6B3A"/>
+  <path d="M206 520H254L248 568H212L206 520Z" fill="#E8B800"/>
+  <text x="600" y="520" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="700" fill="#1E6B3A">Placeholder Gambar</text>
+</svg>
