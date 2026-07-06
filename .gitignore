@@ -21,3 +21,7 @@ pnpm-debug.log*
 # IDEs / editors
 .vscode/
 
+# Backend directory
+backend/
+
+

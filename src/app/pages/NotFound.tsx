@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { Navbar } from "./Home";
+import { Navbar } from "../components/Layout";
 
 export default function NotFound() {
   const navigate = useNavigate();

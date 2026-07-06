@@ -1,39 +1,12 @@
 import { useNavigate } from "react-router";
 import { MapPin, Phone, User, Info, GraduationCap, Users, School } from "lucide-react";
 import { allSchools, type SchoolFull } from "../data/schools";
+import { Navbar } from "../components/Layout";
 import kadesImage from "../../image/Home/kades.png";
 import logoImage from "../../image/Home/logo.png";
 import kknImage from "../../image/Home/KKN_96.png";
 
 const font = "'Plus Jakarta Sans', sans-serif";
-
-/* ─── Navbar ─────────────────────────────────────────────────────── */
-export function Navbar() {
-  const navigate = useNavigate();
-  return (
-    <nav className="sticky top-0 z-50 bg-primary shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="relative flex items-center justify-between h-16">
-          <button onClick={() => navigate("/")} className="flex items-center gap-3 hover:opacity-90 transition-opacity -ml-4 sm:-ml-6 lg:-ml-8">
-            <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center shadow-md shrink-0">
-              <img src={logoImage} alt="Logo Desa" className="w-8 h-8 object-contain" />
-            </div>
-            <div className="leading-tight text-left">
-              <div className="text-white font-bold text-sm tracking-wide" style={{ fontFamily: font }}>PORTAL PENDIDIKAN</div>
-              <div className="text-accent text-xs font-medium tracking-wider">SEKOLAH DASAR</div>
-            </div>
-          </button>
-
-        </div>
-          <div className="hidden md:flex items-center gap-1 overflow-x-auto no-scrollbar absolute right-4 top-0 h-full" style={{ fontFamily: font }}>
-            {['Beranda', 'Sekolah', 'Statistik', 'Kontak'].map((item) => (
-              <a key={item} href="#" className="px-4 py-2 text-white/80 hover:text-white hover:bg-white/10 rounded-lg text-sm font-medium transition-all duration-150 whitespace-nowrap">{item}</a>
-            ))}
-          </div>
-      </div>
-    </nav>
-  );
-}
 
 /* ─── Hero ───────────────────────────────────────────────────────── */
 function HeroSection() {

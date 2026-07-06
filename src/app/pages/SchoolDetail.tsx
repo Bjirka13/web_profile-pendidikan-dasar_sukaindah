@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { getSchoolBySlug, type SchoolFull, type TeacherStaff, type GalleryItem } from "../data/schools";
-import { Footer, Navbar } from "./Home";
+import { Footer, Navbar } from "../components/Layout";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 const font = "'Plus Jakarta Sans', sans-serif";
 const PIE_COLORS = ["#1e6b3a", "#e8b800"];
@@ -90,7 +91,7 @@ function HeroBanner({ school }: { school: SchoolFull }) {
                 {school.name}
               </h1>
               <p className="text-accent font-medium text-sm md:text-base mt-1 italic" style={{ fontFamily: font }}>
-                "{school.tagline}"
+                {school.syncStatus}
               </p>
             </div>
           </div>
@@ -384,8 +385,16 @@ function TeachersStaff({ school }: { school: SchoolFull }) {
   );
 }
 
+const SEMESTER_OPTIONS = [
+  "2025/2026 Ganjil",
+  "2025/2026 Genap",
+] as const;
+
+type SchoolDetailSemesterKey = (typeof SEMESTER_OPTIONS)[number];
+
 /* ═══ SECTION 8: Student Statistics ═════════════════════════════════ */
 function StudentStats({ school }: { school: SchoolFull }) {
+  const [selectedSemester, setSelectedSemester] = useState<SchoolDetailSemesterKey>(SEMESTER_OPTIONS[0]);
   const pieData = [
     { name: "Laki-laki", value: school.maleStudents },
     { name: "Perempuan", value: school.femaleStudents },
@@ -416,7 +425,27 @@ function StudentStats({ school }: { school: SchoolFull }) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bar chart by grade */}
         <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
-          <h4 className="font-bold text-foreground mb-5" style={{ fontFamily: font }}>Jumlah Siswa per Kelas</h4>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+            <div>
+              <h4 className="font-bold text-foreground" style={{ fontFamily: font }}>Jumlah Siswa per Kelas</h4>
+              <p className="text-xs text-muted-foreground mt-1">Semester {selectedSemester}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">Semester</span>
+              <Select value={selectedSemester} onValueChange={(value: string) => setSelectedSemester(value as SchoolDetailSemesterKey)}>
+                <SelectTrigger size="sm" className="w-48">
+                  <SelectValue>{selectedSemester}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  {SEMESTER_OPTIONS.map((semesterOption) => (
+                    <SelectItem key={semesterOption} value={semesterOption}>
+                      {semesterOption}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={school.gradeStats} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />

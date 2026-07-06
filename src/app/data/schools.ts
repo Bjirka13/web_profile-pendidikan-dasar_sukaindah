@@ -54,6 +54,7 @@ export interface SchoolFull {
   shortName: string;
   npsn: string;
   tagline: string;
+  syncStatus: string;
   address: string;
   kodePos: string;
   kecamatan: string;
@@ -72,6 +73,7 @@ export interface SchoolFull {
     photo: string;
     welcome: string;
     position: string;
+    nip?: string;
   };
 
   history: string;
@@ -200,6 +202,7 @@ const school1: SchoolFull = {
   id: 1, slug: "sdn-sukaindah-01",
   name: "SDN Sukaindah 01", shortName: "SDN SI 01",
   npsn: "20217401", tagline: "Cerdas, Berkarakter, Berprestasi",
+  syncStatus: "Sinkronisasi DAPO: berhasil 06 Juli 2026",
   address: "Kp. Cabang Pulo Bambu RT.01 RW.01", kodePos: "17646",
   kecamatan: "Sukakarya", desa: "Sukaindah",
   contact: "082112345601", email: "sdn01sukaindah@gmail.com",
@@ -273,6 +276,7 @@ const school2: SchoolFull = {
   id: 2, slug: "sdn-sukaindah-02",
   name: "SDN Sukaindah 02", shortName: "SDN SI 02",
   npsn: "20217402", tagline: "Berilmu, Berakhlak, Berprestasi",
+  syncStatus: "Sinkronisasi DAPO: berhasil 06 Juli 2026",
   address: "Jl. Pendidikan No. 7", kodePos: "41371",
   kecamatan: "Sukakarya", desa: "Sukaindah",
   contact: "082112345602", email: "sdn.sukaindah02@gmail.com",
@@ -339,6 +343,7 @@ const school3: SchoolFull = {
   id: 3, slug: "sdn-sukaindah-03",
   name: "SDN Sukaindah 03", shortName: "SDN SI 03",
   npsn: "20218489", tagline: "Disiplin, Kreatif, Mandiri",
+  syncStatus: "Sinkronisasi DAPO: berhasil 06 Juli 2026",
   address: "Jl. Mekar Jaya No. 12", kodePos: "17640",
   kecamatan: "Sukakarya", desa: "Sukaindah",
   contact: "082112345603", email: "sdn.sukaindah03@gmail.com",
@@ -405,6 +410,7 @@ const school4: SchoolFull = {
   id: 4, slug: "sdn-sukaindah-04",
   name: "SDN Sukaindah 04", shortName: "SDN SI 04",
   npsn: "20217404", tagline: "Beriman, Terampil, dan Berprestasi",
+  syncStatus: "Sinkronisasi DAPO: berhasil 06 Juli 2026",
   address: "Jl. Cempaka Putih No. 3", kodePos: "41371",
   kecamatan: "Sukakarya", desa: "Sukaindah",
   contact: "082112345604", email: "sdn.sukaindah04@gmail.com",
