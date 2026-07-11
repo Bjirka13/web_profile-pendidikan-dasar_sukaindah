@@ -102,13 +102,14 @@ export function StatsSection() {
   ];
 
   return (
-    <section className="py-16 bg-gray-50">
-      <div className="container mx-auto px-4">
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between mb-12">
+    <section className="relative overflow-hidden rounded-[2rem] border border-amber-100 bg-white/80 px-5 py-6 shadow-[0_24px_80px_-30px_rgba(16,24,40,0.22)] backdrop-blur md:px-8 md:py-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(232,184,0,0.12),_transparent_28%),radial-gradient(circle_at_bottom_left,_rgba(245,158,11,0.10),_transparent_25%)]" />
+      <div className="relative">
+        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between mb-10">
           <div>
-            <p className="text-accent font-semibold uppercase tracking-[0.3em] mb-3">Statistik</p>
+            <p className="text-amber-700 font-semibold uppercase tracking-[0.3em] mb-3">Statistik</p>
             <h2 className="text-3xl md:text-4xl font-extrabold text-foreground">Ringkasan Data Pendidikan</h2>
-            <p className="mt-4 text-gray-600 max-w-2xl">
+            <p className="mt-4 text-muted-foreground max-w-2xl">
               Visualisasi data per semester untuk sekolah dasar di Desa Sukaindah.
             </p>
           </div>
@@ -129,12 +130,16 @@ export function StatsSection() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-10">
           {cards.map((card, index) => (
-            <Card key={index} className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+            <Card
+              key={index}
+              className="overflow-hidden border border-amber-100/80 bg-white/90 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+            >
+              <div className="h-1 bg-gradient-to-r from-amber-500 via-yellow-400 to-emerald-500" />
               <CardContent className="p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-2xl bg-gray-100 ${card.color}`}>
+                  <div className={`p-3 rounded-2xl bg-amber-50 ${card.color}`}>
                     <card.icon className="w-6 h-6" />
                   </div>
                   <span className="text-sm font-semibold text-muted-foreground">
@@ -149,7 +154,8 @@ export function StatsSection() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="overflow-hidden border border-amber-100 bg-white/90 shadow-sm transition-all duration-300 hover:shadow-xl">
+            <div className="h-1 bg-gradient-to-r from-amber-500 to-yellow-400" />
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
@@ -175,7 +181,8 @@ export function StatsSection() {
             </CardContent>
           </Card>
 
-          <Card className="border-0 shadow-lg hover:shadow-xl transition-shadow">
+          <Card className="overflow-hidden border border-amber-100 bg-white/90 shadow-sm transition-all duration-300 hover:shadow-xl">
+            <div className="h-1 bg-gradient-to-r from-yellow-400 to-amber-500" />
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
@@ -196,10 +203,15 @@ export function StatsSection() {
                   </PieChart>
                 </ResponsiveContainer>
               </div>
-              <div className="mt-4 text-sm font-semibold text-foreground">Total Siswa: {semester.totalStudents.toLocaleString("id")}</div>
+              <div className="mt-4 rounded-2xl border border-amber-100 bg-amber-50/60 px-4 py-3 text-sm font-semibold text-foreground">
+                Total Siswa: {semester.totalStudents.toLocaleString("id")}
+              </div>
               <div className="grid grid-cols-2 gap-4 mt-4">
                 {pieData.map((item, index) => (
-                  <div key={item.name} className="rounded-2xl bg-gray-50 p-4 flex items-center gap-3 shadow-sm">
+                  <div
+                    key={item.name}
+                    className="rounded-2xl border border-amber-100 bg-white px-4 py-4 flex items-center gap-3 shadow-sm"
+                  >
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[index] }} />
                     <div>
                       <p className="text-sm font-semibold">{item.name}</p>
