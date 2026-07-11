@@ -14,6 +14,7 @@ export function Navbar() {
     { label: "Sekolah", href: "/sekolah" },
     { label: "Statistik", href: "/statistik" },
     { label: "About Us", href: "/know-about-us" },
+    { label: "Admin", href: "/admin" },
   ];
 
   const handleNavigate = (href: string) => {

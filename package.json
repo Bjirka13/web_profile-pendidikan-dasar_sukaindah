@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite"
+    "dev": "vite",
+    "sync:backend": "pnpm --dir backend run sync"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",

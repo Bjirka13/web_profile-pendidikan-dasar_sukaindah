@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router";
 import { MapPin, User, Phone, Info } from "lucide-react";
-import { allSchools, type SchoolFull } from "../data/schools";
+import { type SchoolFull } from "../data/schools";
 import { Footer, Navbar } from "../components/Layout";
+import { useSchoolCms } from "../cms/school-cms";
 
 const font = "'Plus Jakarta Sans', sans-serif";
 
@@ -20,7 +21,7 @@ function SchoolCard({ school }: { school: SchoolFull }) {
         <h3 className="text-foreground font-extrabold text-lg mb-3 leading-tight" style={{ fontFamily: font }}>{school.name}</h3>
         <div className="space-y-3 text-sm text-muted-foreground mb-6">
           <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />{school.address}, Desa {school.desa}</p>
-          <p className="flex items-center gap-2"><User className="w-4 h-4 text-primary" />Kepala Sekolah: {school.principal.name}</p>
+          <p className="flex items-center gap-2"><User className="w-4 h-4 text-primary" />{school.principal.name}</p>
           <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-primary" />{school.contact}</p>
         </div>
         <button
@@ -36,6 +37,8 @@ function SchoolCard({ school }: { school: SchoolFull }) {
 }
 
 export default function Schools() {
+  const { schools } = useSchoolCms();
+
   return (
     <div className="min-h-screen bg-background" style={{ fontFamily: font }}>
       <Navbar />
@@ -69,7 +72,7 @@ export default function Schools() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {allSchools.map((school) => (
+              {schools.map((school) => (
                 <SchoolCard key={school.id} school={school} />
               ))}
             </div>

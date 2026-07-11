@@ -1,3 +1,4 @@
+
 import { schoolImageAssets } from "../../image";
 
 export interface TeacherStaff {
@@ -201,9 +202,9 @@ function makeGallery(): GalleryItem[] {
 const school1: SchoolFull = {
   id: 1, slug: "sdn-sukaindah-01",
   name: "SDN Sukaindah 01", shortName: "SDN SI 01",
-  npsn: "20217401", tagline: "Cerdas, Berkarakter, Berprestasi",
-  syncStatus: "Sinkronisasi DAPO: berhasil 06 Juli 2026",
-  address: "Kp. Cabang Pulo Bambu RT.01 RW.01", kodePos: "17646",
+  npsn: "20218491", tagline: "Cerdas, Berkarakter, Berprestasi",
+  syncStatus: "Sinkronisasi DAPO berhasil 10/7/2026",
+  address: "KP. CABANG PULO BAMBU RT.01 RW.01", kodePos: "17646",
   kecamatan: "Sukakarya", desa: "Sukaindah",
   contact: "082112345601", email: "sdn01sukaindah@gmail.com",
   accreditation: "B", status: "Negeri", yearEstablished: "1910",
@@ -234,7 +235,7 @@ const school1: SchoolFull = {
     "Meningkatkan ketersediaan dan kualitas sarana prasarana pendidikan",
   ],
 
-  totalStudents: 305, maleStudents: 160, femaleStudents: 145,
+  totalStudents: 304, maleStudents: 159, femaleStudents: 145,
   totalTeachers: 13, totalClassrooms: 5, totalStudyGroups: 10,
   gradeStats: [
     { grade: 1, label: "Kelas I.A", total: 33, male: 12, female: 21 },
@@ -275,17 +276,17 @@ const school1: SchoolFull = {
 const school2: SchoolFull = {
   id: 2, slug: "sdn-sukaindah-02",
   name: "SDN Sukaindah 02", shortName: "SDN SI 02",
-  npsn: "20217402", tagline: "Berilmu, Berakhlak, Berprestasi",
-  syncStatus: "Sinkronisasi DAPO: berhasil 06 Juli 2026",
-  address: "Jl. Pendidikan No. 7", kodePos: "41371",
+  npsn: "20218490", tagline: "Berilmu, Berakhlak, Berprestasi",
+  syncStatus: "Sinkronisasi DAPO berhasil 10/7/2026",
+  address: "Kp. Kumejing", kodePos: "17630",
   kecamatan: "Sukakarya", desa: "Sukaindah",
   contact: "082112345602", email: "sdn.sukaindah02@gmail.com",
-  accreditation: "B", status: "Negeri", yearEstablished: "1975",
+  accreditation: "B", status: "Negeri", yearEstablished: "1910",
   heroImage: IMG.building2, cardImage: IMG.building2,
   mapsEmbed: "https://maps.app.goo.gl/Du7FvmqqDBw8ooga7",
 
   principal: {
-    name: "Endang Sutarni, S.Pd. SD",
+    name: "Nurhayadi, S.Pd. SD",
     position: "Kepala Sekolah",
     photo: IMG.principal2,
     welcome: `Assalamu'alaikum Warahmatullahi Wabarakatuh.\n\nSalam hangat dari SDN Sukaindah 02. Sebagai pemimpin sekolah ini, saya mengajak seluruh warga sekolah untuk bersama-sama mewujudkan impian besar: menjadikan SDN Sukaindah 02 sebagai sekolah yang unggul, inovatif, dan berkarakter.\n\nPendidikan bukan sekadar transfer pengetahuan, tetapi proses pembentukan karakter dan akhlak mulia yang akan menjadi bekal hidup anak-anak kita. Oleh karena itu, kami menggabungkan kurikulum akademik yang kuat dengan pendidikan karakter yang berkelanjutan.\n\nKepercayaan orang tua dan masyarakat adalah amanah yang kami emban dengan penuh tanggung jawab. Bersama kita wujudkan generasi emas Indonesia.\n\nWassalamu'alaikum Warahmatullahi Wabarakatuh.`,
@@ -307,8 +308,8 @@ const school2: SchoolFull = {
     "Mengembangkan program unggulan berbasis teknologi dan seni budaya lokal",
   ],
 
-  totalStudents: 255, maleStudents: 148, femaleStudents: 139,
-  totalTeachers: 9, totalClassrooms: 6, totalStudyGroups: 9,
+  totalStudents: 255, maleStudents: 142, femaleStudents: 113,
+  totalTeachers: 11, totalClassrooms: 6, totalStudyGroups: 9,
   gradeStats: [
     { grade: 1, label: "Kelas I", total: 49, male: 26, female: 23 },
     { grade: 2, label: "Kelas II", total: 48, male: 25, female: 23 },
@@ -343,8 +344,8 @@ const school3: SchoolFull = {
   id: 3, slug: "sdn-sukaindah-03",
   name: "SDN Sukaindah 03", shortName: "SDN SI 03",
   npsn: "20218489", tagline: "Disiplin, Kreatif, Mandiri",
-  syncStatus: "Sinkronisasi DAPO: berhasil 06 Juli 2026",
-  address: "Jl. Mekar Jaya No. 12", kodePos: "17640",
+  syncStatus: "Sinkronisasi DAPO berhasil 10/7/2026",
+  address: "Kp. Cabang Pulo Bambu", kodePos: "17640",
   kecamatan: "Sukakarya", desa: "Sukaindah",
   contact: "082112345603", email: "sdn.sukaindah03@gmail.com",
   accreditation: "C", status: "Negeri", yearEstablished: "1977",
@@ -374,8 +375,8 @@ const school3: SchoolFull = {
     "Mengoptimalkan penggunaan teknologi dalam proses pembelajaran",
   ],
 
-  totalStudents: 256, maleStudents: 132, femaleStudents: 124,
-  totalTeachers: 11, totalClassrooms: 9, totalStudyGroups: 12,
+  totalStudents: 130, maleStudents: 69, femaleStudents: 61,
+  totalTeachers: 10, totalClassrooms: 6, totalStudyGroups: 6,
   gradeStats: [
     { grade: 1, label: "Kelas I", total: 44, male: 23, female: 21 },
     { grade: 2, label: "Kelas II", total: 43, male: 22, female: 21 },
@@ -409,12 +410,12 @@ const school3: SchoolFull = {
 const school4: SchoolFull = {
   id: 4, slug: "sdn-sukaindah-04",
   name: "SDN Sukaindah 04", shortName: "SDN SI 04",
-  npsn: "20217404", tagline: "Beriman, Terampil, dan Berprestasi",
-  syncStatus: "Sinkronisasi DAPO: berhasil 06 Juli 2026",
-  address: "Jl. Cempaka Putih No. 3", kodePos: "41371",
+  npsn: "20218488", tagline: "Beriman, Terampil, dan Berprestasi",
+  syncStatus: "Sinkronisasi DAPO berhasil 10/7/2026",
+  address: "KP. PULO GELATIK", kodePos: "17628",
   kecamatan: "Sukakarya", desa: "Sukaindah",
   contact: "082112345604", email: "sdn.sukaindah04@gmail.com",
-  accreditation: "B", status: "Negeri", yearEstablished: "1983",
+  accreditation: "B", status: "Negeri", yearEstablished: "1910",
   heroImage: IMG.building4, cardImage: IMG.building4,
   mapsEmbed: "https://maps.app.goo.gl/t2t2777uGEp5zUFfA",
 
@@ -442,8 +443,8 @@ const school4: SchoolFull = {
     "Mengembangkan program ekstrakurikuler unggulan berbasis potensi lokal",
   ],
 
-  totalStudents: 171, maleStudents: 96, femaleStudents: 76,
-  totalTeachers: 14, totalClassrooms: 6, totalStudyGroups: 7,
+  totalStudents: 171, maleStudents: 96, femaleStudents: 75,
+  totalTeachers: 10, totalClassrooms: 7, totalStudyGroups: 7,
   gradeStats: [
     { grade: 1, label: "Kelas I.A", total: 19, male: 10, female: 9 },
     { grade: 1, label: "Kelas I.B", total: 19, male: 8, female: 11 },

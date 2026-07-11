@@ -4,6 +4,7 @@ import kknImage from "../../image/Home/KKN_96.png";
 export default function About() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Konten About Us sengaja dibuat statis dan tidak dihubungkan ke WordPress. */}
       <Navbar />
       <main className="py-16">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

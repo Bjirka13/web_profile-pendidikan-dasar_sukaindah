@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router";
 import { MapPin, Phone, User, Info, GraduationCap, Users, School } from "lucide-react";
-import { allSchools, type SchoolFull } from "../data/schools";
+import { type SchoolFull } from "../data/schools";
 import { Navbar } from "../components/Layout";
+import { WordPressPosts } from "../components/WordPressPosts";
+import { useSchoolCms } from "../cms/school-cms";
 import kadesImage from "../../image/Home/kades.png";
 import logoImage from "../../image/Home/logo.png";
 import kknImage from "../../image/Home/KKN_96.png";
@@ -57,17 +59,18 @@ function HeroSection() {
 }
 
 /* ─── Stats ──────────────────────────────────────────────────────── */
-const totalTeachers = allSchools.reduce((acc, s) => acc + (s.totalTeachers || 0), 0);
-const totalStudents = allSchools.reduce((acc, s) => acc + (s.totalStudents || 0), 0);
-const totalSchools = allSchools.length;
-
-const stats = [
-  { label: "Total Guru", value: totalTeachers.toLocaleString("id"), icon: GraduationCap },
-  { label: "Total Murid", value: totalStudents.toLocaleString("id"), icon: Users },
-  { label: "Total SD", value: totalSchools.toString(), icon: School },
-];
-
 function StatsSection() {
+  const { schools } = useSchoolCms();
+  const totalTeachers = schools.reduce((acc, s) => acc + (s.totalTeachers || 0), 0);
+  const totalStudents = schools.reduce((acc, s) => acc + (s.totalStudents || 0), 0);
+  const totalSchools = schools.length;
+
+  const stats = [
+    { label: "Total Guru", value: totalTeachers.toLocaleString("id"), icon: GraduationCap },
+    { label: "Total Murid", value: totalStudents.toLocaleString("id"), icon: Users },
+    { label: "Total SD", value: totalSchools.toString(), icon: School },
+  ];
+
   return (
     <section className="bg-white py-16">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -175,18 +178,18 @@ function SchoolCard({ school }: { school: SchoolFull }) {
 }
 
 /* ─── Schools Section ────────────────────────────────────────────── */
-function SchoolsSection() {
+function SchoolsSection({ schools }: { schools: SchoolFull[] }) {
   return (
     <section className="py-16 md:py-20" style={{ backgroundColor: "#8b2e22" }}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
           <span className="inline-block bg-white/15 text-white text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full border border-white/20 mb-4" style={{ fontFamily: font }}>Direktori</span>
           <h2 className="text-white font-extrabold text-2xl md:text-3xl" style={{ fontFamily: font }}>Sekolah Dasar di Desa Sukaindah</h2>
-          <p className="text-white/60 mt-2 text-sm" style={{ fontFamily: font }}>{allSchools.length} sekolah dasar negeri terdaftar</p>
+          <p className="text-white/60 mt-2 text-sm" style={{ fontFamily: font }}>{schools.length} sekolah dasar negeri terdaftar</p>
           <div className="mx-auto mt-3 h-1 w-16 rounded-full bg-accent" />
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {allSchools.map((school) => <SchoolCard key={school.id} school={school} />)}
+          {schools.map((school) => <SchoolCard key={school.id} school={school} />)}
         </div>
       </div>
     </section>
@@ -227,13 +230,16 @@ export function Footer() {
 
 /* ─── Home Page ──────────────────────────────────────────────────── */
 export default function Home() {
+  const { schools } = useSchoolCms();
+
   return (
     <div className="min-h-screen bg-background" style={{ fontFamily: font }}>
       <Navbar />
       <HeroSection />
       <StatsSection />
       <SambutanSection />
-      <SchoolsSection />
+      <WordPressPosts />
+      <SchoolsSection schools={schools} />
       <Footer />
     </div>
   );

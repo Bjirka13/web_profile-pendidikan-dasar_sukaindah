@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Users, GraduationCap, School, BookOpen, Clock } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { allSchools, type SchoolFull } from "../data/schools";
+import { type SchoolFull } from "../data/schools";
+import { useSchoolCms } from "../cms/school-cms";
 
 const SEMESTER_OPTIONS = [
   "2025/2026 Ganjil",
@@ -68,15 +69,18 @@ function aggregateSchoolStats(schools: SchoolFull[]): StatsAggregate {
   return totals;
 }
 
-const SEMESTER_STATS: Record<SemesterKey, StatsAggregate> = {
-  "2025/2026 Ganjil": aggregateSchoolStats(allSchools),
-  "2025/2026 Genap": aggregateSchoolStats(allSchools),
-};
-
 const PIE_COLORS = ["#1e6b3a", "#e8b800"];
 
 export function StatsSection() {
+  const { schools } = useSchoolCms();
   const [selectedSemester, setSelectedSemester] = useState<SemesterKey>(SEMESTER_OPTIONS[0]);
+  const SEMESTER_STATS = useMemo<Record<SemesterKey, StatsAggregate>>(
+    () => ({
+      "2025/2026 Ganjil": aggregateSchoolStats(schools),
+      "2025/2026 Genap": aggregateSchoolStats(schools),
+    }),
+    [schools]
+  );
   const semester = SEMESTER_STATS[selectedSemester as SemesterKey];
   const pieData = [
     { name: "Laki-laki", value: semester.maleStudents },

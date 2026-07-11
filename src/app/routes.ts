@@ -4,6 +4,7 @@ import Schools from "./pages/Schools";
 import SchoolDetail from "./pages/SchoolDetail";
 import Statistics from "./pages/Statistics";
 import About from "./pages/About";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 export const router = createBrowserRouter([
@@ -22,6 +23,10 @@ export const router = createBrowserRouter([
   {
     path: "/know-about-us",
     Component: About,
+  },
+  {
+    path: "/admin",
+    Component: Admin,
   },
   {
     path: "/sekolah/:slug",
