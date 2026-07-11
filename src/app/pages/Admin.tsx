@@ -1,4 +1,4 @@
-import { useEffect, useState, type ComponentType, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ComponentType, type FormEvent, type ReactNode } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import {
   ArrowLeft,
@@ -28,6 +28,7 @@ import { Textarea } from "../components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
 import { cloneSchoolData, useSchoolCms } from "../cms/school-cms";
 import type { SchoolFull } from "../data/schools";
+import { schoolImageAssets } from "../../image";
 
 const font = "'Plus Jakarta Sans', sans-serif";
 
@@ -184,6 +185,77 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(new Error("Gagal membaca file gambar."));
+    reader.readAsDataURL(file);
+  });
+}
+
+function ImageUploadField({
+  label,
+  value,
+  onChange,
+  hint,
+}: {
+  label: string;
+  value: string;
+  onChange: (next: string) => void;
+  hint?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const dataUrl = await fileToDataUrl(file);
+      onChange(dataUrl);
+    } catch (error) {
+      console.error(error);
+      window.alert("Gagal membaca gambar.");
+    } finally {
+      event.target.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-end justify-between gap-3">
+        <span className="text-sm font-semibold text-foreground" style={{ fontFamily: font }}>
+          {label}
+        </span>
+        {hint && <span className="text-[11px] text-muted-foreground">{hint}</span>}
+      </div>
+      <div className="flex flex-col gap-3">
+        <div className="flex gap-2">
+          <Input
+            value={value}
+            onChange={(event) => onChange(event.target.value)}
+            placeholder="Tempel URL gambar atau upload file"
+          />
+          <Button type="button" variant="outline" onClick={() => inputRef.current?.click()}>
+            Upload
+          </Button>
+          <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+        </div>
+        {value ? (
+          <div className="overflow-hidden rounded-2xl border border-border bg-muted/30">
+            <img src={value} alt={label} className="h-40 w-full object-cover" loading="lazy" />
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-xs text-muted-foreground">
+            Belum ada gambar.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function schoolSummary(school: SchoolFull) {
   return [
     { label: "Siswa", value: school.totalStudents, icon: Users },
@@ -196,7 +268,7 @@ function createEmptyStaff(): SchoolFull["staff"][number] {
   return {
     name: "",
     position: "",
-    photo: "",
+    photo: schoolImageAssets.blank,
     isAdmin: false,
     isVicePrincipal: false,
   };
@@ -207,7 +279,7 @@ function createEmptyTeacher(): SchoolFull["teachers"][number] {
     name: "",
     position: "",
     nip: "",
-    photo: "",
+    photo: schoolImageAssets.blank,
   };
 }
 
@@ -215,7 +287,7 @@ function createEmptyFacility(): SchoolFull["facilities"][number] {
   return {
     name: "",
     description: "",
-    photo: "",
+    photo: schoolImageAssets.blank,
     icon: "🏫",
     count: 1,
   };
@@ -227,7 +299,7 @@ function createEmptyAchievement(): SchoolFull["achievements"][number] {
     year: "",
     level: "",
     description: "",
-    photo: "",
+    photo: schoolImageAssets.blank,
   };
 }
 
@@ -237,14 +309,14 @@ function createEmptyNewsItem(): SchoolFull["news"][number] {
     title: "",
     date: "",
     excerpt: "",
-    thumbnail: "",
+    thumbnail: schoolImageAssets.blank,
     category: "Kegiatan",
   };
 }
 
 function createEmptyGalleryItem(): SchoolFull["gallery"][number] {
   return {
-    photo: "",
+    photo: schoolImageAssets.blank,
     caption: "",
   };
 }
@@ -376,17 +448,16 @@ export default function Admin() {
     setSaving(true);
     try {
       saveSchool(selectedSchool);
-      await syncSchoolsToSupabase([selectedSchool.id]);
       setSelectedId(selectedSchool.id);
       setSearchParams((current) => {
         current.set("school", selectedSchool.slug);
         return current;
       });
       setDirty(false);
-      window.alert("Perubahan berhasil disimpan.");
+      window.alert("Perubahan berhasil disimpan di proyek.");
     } catch (error) {
       console.error(error);
-      window.alert("Gagal menyimpan atau sinkronisasi ke Supabase.");
+      window.alert("Gagal menyimpan perubahan.");
     } finally {
       setSaving(false);
     }
@@ -514,8 +585,7 @@ export default function Admin() {
                   Panel Admin
                 </h1>
                 <p className="mt-5 max-w-2xl text-white/75 text-base md:text-lg">
-                  Edit profil sekolah, statistik, dan konten utama tanpa menyentuh source code.
-                  Tampilan mengikuti bahasa visual portal utama supaya tetap konsisten.
+                  Edit profil sekolah, statistik, dan konten utama
                 </p>
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <Badge variant={isSupabaseEnabled ? "default" : "secondary"}>
@@ -632,6 +702,8 @@ export default function Admin() {
                       <TabsList className="w-full h-auto flex-wrap justify-start bg-muted p-1">
                         <TabsTrigger value="profile" className="flex-1 min-w-28">Profil</TabsTrigger>
                         <TabsTrigger value="content" className="flex-1 min-w-28">Konten</TabsTrigger>
+                        <TabsTrigger value="achievement" className="flex-1 min-w-28">Prestasi</TabsTrigger>
+                        <TabsTrigger value="news" className="flex-1 min-w-28">Berita</TabsTrigger>
                         <TabsTrigger value="collection" className="flex-1 min-w-28">Koleksi</TabsTrigger>
                         <TabsTrigger value="stats" className="flex-1 min-w-28">Statistik</TabsTrigger>
                       </TabsList>
@@ -683,12 +755,17 @@ export default function Admin() {
                           <Field label="Email">
                             <Input value={selectedSchool.email} onChange={(event) => updateDraft({ email: event.target.value })} />
                           </Field>
-                          <Field label="Hero Image URL" hint="Ganti dengan link Supabase Storage bila sudah dipindah">
-                            <Input value={selectedSchool.heroImage} onChange={(event) => updateDraft({ heroImage: event.target.value })} />
-                          </Field>
-                          <Field label="Card Image URL">
-                            <Input value={selectedSchool.cardImage} onChange={(event) => updateDraft({ cardImage: event.target.value })} />
-                          </Field>
+                          <ImageUploadField
+                            label="Hero Image"
+                            value={selectedSchool.heroImage}
+                            onChange={(next) => updateDraft({ heroImage: next })}
+                            hint="Upload atau tempel URL"
+                          />
+                          <ImageUploadField
+                            label="Card Image"
+                            value={selectedSchool.cardImage}
+                            onChange={(next) => updateDraft({ cardImage: next })}
+                          />
                           <Field label="Maps Embed URL" className="md:col-span-2">
                             <Textarea value={selectedSchool.mapsEmbed} onChange={(event) => updateDraft({ mapsEmbed: event.target.value })} />
                           </Field>
@@ -740,16 +817,15 @@ export default function Admin() {
                                 }
                               />
                             </Field>
-                            <Field label="Foto Kepala Sekolah">
-                              <Input
-                                value={selectedSchool.principal.photo}
-                                onChange={(event) =>
-                                  updateDraft({
-                                    principal: { ...selectedSchool.principal, photo: event.target.value },
-                                  })
-                                }
-                              />
-                            </Field>
+                            <ImageUploadField
+                              label="Foto Kepala Sekolah"
+                              value={selectedSchool.principal.photo}
+                              onChange={(next) =>
+                                updateDraft({
+                                  principal: { ...selectedSchool.principal, photo: next },
+                                })
+                              }
+                            />
                           </div>
 
                           <div className="space-y-4">
@@ -830,6 +906,183 @@ export default function Admin() {
                         </div>
                       </TabsContent>
 
+                      <TabsContent value="achievement" className="space-y-6">
+                        <div className="rounded-3xl border border-border bg-emerald-50/70 p-5">
+                          <div className="flex items-start gap-3">
+                            <BadgeCheck className="w-5 h-5 text-primary mt-0.5" />
+                            <div className="space-y-2">
+                              <p className="font-semibold text-foreground">CMS Prestasi</p>
+                              <p className="text-sm text-muted-foreground">
+                                Prestasi sekolah tampil di halaman publik dan disimpan per sekolah, jadi admin hanya mengelola milik sekolahnya sendiri.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <ArrayHeader
+                            title="Achievements"
+                            subtitle="Prestasi sekolah yang ditampilkan di halaman publik"
+                            onAdd={() => addArrayItem("achievements", createEmptyAchievement())}
+                          />
+                          {selectedSchool.achievements.length === 0 ? (
+                            <EmptyState text="Belum ada prestasi." />
+                          ) : (
+                            <div className="space-y-3">
+                              {selectedSchool.achievements.map((achievement, index) => (
+                                <ArrayCard key={`${achievement.title || "achievement"}-${index}`}>
+                                  <div className="grid gap-3 md:grid-cols-2">
+                                    <Field label="Judul" className="md:col-span-2">
+                                      <Input
+                                        value={achievement.title}
+                                        onChange={(event) =>
+                                          replaceArrayItem("achievements", index, {
+                                            ...achievement,
+                                            title: event.target.value,
+                                          })
+                                        }
+                                      />
+                                    </Field>
+                                    <Field label="Tahun">
+                                      <Input
+                                        value={achievement.year}
+                                        onChange={(event) =>
+                                          replaceArrayItem("achievements", index, {
+                                            ...achievement,
+                                            year: event.target.value,
+                                          })
+                                        }
+                                      />
+                                    </Field>
+                                    <Field label="Level">
+                                      <Input
+                                        value={achievement.level}
+                                        onChange={(event) =>
+                                          replaceArrayItem("achievements", index, {
+                                            ...achievement,
+                                            level: event.target.value,
+                                          })
+                                        }
+                                      />
+                                    </Field>
+                                    <div className="md:col-span-2">
+                                      <ImageUploadField
+                                        label="Foto"
+                                        value={achievement.photo ?? ""}
+                                        onChange={(next) =>
+                                          replaceArrayItem("achievements", index, {
+                                            ...achievement,
+                                            photo: next || undefined,
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                    <Field label="Deskripsi" className="md:col-span-2">
+                                      <Textarea
+                                        value={achievement.description}
+                                        onChange={(event) =>
+                                          replaceArrayItem("achievements", index, {
+                                            ...achievement,
+                                            description: event.target.value,
+                                          })
+                                        }
+                                      />
+                                    </Field>
+                                    <div className="md:col-span-2 flex justify-end">
+                                      <RemoveButton onClick={() => removeArrayItem("achievements", index)} />
+                                    </div>
+                                  </div>
+                                </ArrayCard>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="news" className="space-y-6">
+                        <div className="rounded-3xl border border-border bg-emerald-50/70 p-5">
+                          <div className="flex items-start gap-3">
+                            <FileText className="w-5 h-5 text-primary mt-0.5" />
+                            <div className="space-y-2">
+                              <p className="font-semibold text-foreground">CMS Berita</p>
+                              <p className="text-sm text-muted-foreground">
+                                Berita sekolah juga disimpan per sekolah, jadi admin tidak bisa mengubah berita sekolah lain.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <ArrayHeader
+                            title="News"
+                            subtitle="Artikel berita singkat yang tampil di halaman detail"
+                            onAdd={() => addArrayItem("news", createEmptyNewsItem())}
+                          />
+                          {selectedSchool.news.length === 0 ? (
+                            <EmptyState text="Belum ada berita." />
+                          ) : (
+                            <div className="space-y-3">
+                              {selectedSchool.news.map((newsItem, index) => (
+                                <ArrayCard key={`${newsItem.id}-${index}`}>
+                                  <div className="grid gap-3 md:grid-cols-2">
+                                    <Field label="Judul" className="md:col-span-2">
+                                      <Input
+                                        value={newsItem.title}
+                                        onChange={(event) =>
+                                          replaceArrayItem("news", index, { ...newsItem, title: event.target.value })
+                                        }
+                                      />
+                                    </Field>
+                                    <Field label="Tanggal">
+                                      <Input
+                                        value={newsItem.date}
+                                        onChange={(event) =>
+                                          replaceArrayItem("news", index, { ...newsItem, date: event.target.value })
+                                        }
+                                      />
+                                    </Field>
+                                    <Field label="Kategori">
+                                      <Input
+                                        value={newsItem.category}
+                                        onChange={(event) =>
+                                          replaceArrayItem("news", index, { ...newsItem, category: event.target.value })
+                                        }
+                                      />
+                                    </Field>
+                                    <div className="md:col-span-2">
+                                      <ImageUploadField
+                                        label="Thumbnail"
+                                        value={newsItem.thumbnail}
+                                        onChange={(next) =>
+                                          replaceArrayItem("news", index, {
+                                            ...newsItem,
+                                            thumbnail: next,
+                                          })
+                                        }
+                                      />
+                                    </div>
+                                    <Field label="Excerpt" className="md:col-span-2">
+                                      <Textarea
+                                        value={newsItem.excerpt}
+                                        onChange={(event) =>
+                                          replaceArrayItem("news", index, {
+                                            ...newsItem,
+                                            excerpt: event.target.value,
+                                          })
+                                        }
+                                      />
+                                    </Field>
+                                    <div className="md:col-span-2 flex justify-end">
+                                      <RemoveButton onClick={() => removeArrayItem("news", index)} />
+                                    </div>
+                                  </div>
+                                </ArrayCard>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </TabsContent>
+
                       <TabsContent value="collection" className="space-y-6">
                         <div className="grid gap-6">
                           <div className="space-y-4">
@@ -861,14 +1114,15 @@ export default function Admin() {
                                           }
                                         />
                                       </Field>
-                                      <Field label="Foto">
-                                        <Input
+                                      <div className="md:col-span-2">
+                                        <ImageUploadField
+                                          label="Foto"
                                           value={person.photo}
-                                          onChange={(event) =>
-                                            replaceArrayItem("staff", index, { ...person, photo: event.target.value })
+                                          onChange={(next) =>
+                                            replaceArrayItem("staff", index, { ...person, photo: next })
                                           }
                                         />
-                                      </Field>
+                                      </div>
                                       <div className="flex items-end justify-between gap-3">
                                         <div className="flex flex-wrap gap-2">
                                           <BooleanPill
@@ -938,14 +1192,15 @@ export default function Admin() {
                                           }
                                         />
                                       </Field>
-                                      <Field label="Foto">
-                                        <Input
+                                      <div className="md:col-span-2">
+                                        <ImageUploadField
+                                          label="Foto"
                                           value={teacher.photo}
-                                          onChange={(event) =>
-                                            replaceArrayItem("teachers", index, { ...teacher, photo: event.target.value })
+                                          onChange={(next) =>
+                                            replaceArrayItem("teachers", index, { ...teacher, photo: next })
                                           }
                                         />
-                                      </Field>
+                                      </div>
                                       <div className="md:col-span-2 flex justify-end">
                                         <RemoveButton onClick={() => removeArrayItem("teachers", index)} />
                                       </div>
@@ -997,14 +1252,15 @@ export default function Admin() {
                                           }
                                         />
                                       </Field>
-                                      <Field label="Foto">
-                                        <Input
+                                      <div className="md:col-span-2">
+                                        <ImageUploadField
+                                          label="Foto"
                                           value={facility.photo}
-                                          onChange={(event) =>
-                                            replaceArrayItem("facilities", index, { ...facility, photo: event.target.value })
+                                          onChange={(next) =>
+                                            replaceArrayItem("facilities", index, { ...facility, photo: next })
                                           }
                                         />
-                                      </Field>
+                                      </div>
                                       <Field label="Deskripsi" className="md:col-span-2">
                                         <Textarea
                                           value={facility.description}
@@ -1028,153 +1284,6 @@ export default function Admin() {
 
                           <div className="space-y-4">
                             <ArrayHeader
-                              title="Achievements"
-                              subtitle="Prestasi sekolah yang ditampilkan di halaman publik"
-                              onAdd={() => addArrayItem("achievements", createEmptyAchievement())}
-                            />
-                            {selectedSchool.achievements.length === 0 ? (
-                              <EmptyState text="Belum ada prestasi." />
-                            ) : (
-                              <div className="space-y-3">
-                                {selectedSchool.achievements.map((achievement, index) => (
-                                  <ArrayCard key={`${achievement.title || "achievement"}-${index}`}>
-                                    <div className="grid gap-3 md:grid-cols-2">
-                                      <Field label="Judul" className="md:col-span-2">
-                                        <Input
-                                          value={achievement.title}
-                                          onChange={(event) =>
-                                            replaceArrayItem("achievements", index, {
-                                              ...achievement,
-                                              title: event.target.value,
-                                            })
-                                          }
-                                        />
-                                      </Field>
-                                      <Field label="Tahun">
-                                        <Input
-                                          value={achievement.year}
-                                          onChange={(event) =>
-                                            replaceArrayItem("achievements", index, {
-                                              ...achievement,
-                                              year: event.target.value,
-                                            })
-                                          }
-                                        />
-                                      </Field>
-                                      <Field label="Level">
-                                        <Input
-                                          value={achievement.level}
-                                          onChange={(event) =>
-                                            replaceArrayItem("achievements", index, {
-                                              ...achievement,
-                                              level: event.target.value,
-                                            })
-                                          }
-                                        />
-                                      </Field>
-                                      <Field label="Foto">
-                                        <Input
-                                          value={achievement.photo ?? ""}
-                                          onChange={(event) =>
-                                            replaceArrayItem("achievements", index, {
-                                              ...achievement,
-                                              photo: event.target.value || undefined,
-                                            })
-                                          }
-                                        />
-                                      </Field>
-                                      <Field label="Deskripsi" className="md:col-span-2">
-                                        <Textarea
-                                          value={achievement.description}
-                                          onChange={(event) =>
-                                            replaceArrayItem("achievements", index, {
-                                              ...achievement,
-                                              description: event.target.value,
-                                            })
-                                          }
-                                        />
-                                      </Field>
-                                      <div className="md:col-span-2 flex justify-end">
-                                        <RemoveButton onClick={() => removeArrayItem("achievements", index)} />
-                                      </div>
-                                    </div>
-                                  </ArrayCard>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="space-y-4">
-                            <ArrayHeader
-                              title="News"
-                              subtitle="Artikel berita singkat yang tampil di halaman detail"
-                              onAdd={() => addArrayItem("news", createEmptyNewsItem())}
-                            />
-                            {selectedSchool.news.length === 0 ? (
-                              <EmptyState text="Belum ada berita." />
-                            ) : (
-                              <div className="space-y-3">
-                                {selectedSchool.news.map((newsItem, index) => (
-                                  <ArrayCard key={`${newsItem.id}-${index}`}>
-                                    <div className="grid gap-3 md:grid-cols-2">
-                                      <Field label="Judul" className="md:col-span-2">
-                                        <Input
-                                          value={newsItem.title}
-                                          onChange={(event) =>
-                                            replaceArrayItem("news", index, { ...newsItem, title: event.target.value })
-                                          }
-                                        />
-                                      </Field>
-                                      <Field label="Tanggal">
-                                        <Input
-                                          value={newsItem.date}
-                                          onChange={(event) =>
-                                            replaceArrayItem("news", index, { ...newsItem, date: event.target.value })
-                                          }
-                                        />
-                                      </Field>
-                                      <Field label="Kategori">
-                                        <Input
-                                          value={newsItem.category}
-                                          onChange={(event) =>
-                                            replaceArrayItem("news", index, { ...newsItem, category: event.target.value })
-                                          }
-                                        />
-                                      </Field>
-                                      <Field label="Thumbnail">
-                                        <Input
-                                          value={newsItem.thumbnail}
-                                          onChange={(event) =>
-                                            replaceArrayItem("news", index, {
-                                              ...newsItem,
-                                              thumbnail: event.target.value,
-                                            })
-                                          }
-                                        />
-                                      </Field>
-                                      <Field label="Excerpt" className="md:col-span-2">
-                                        <Textarea
-                                          value={newsItem.excerpt}
-                                          onChange={(event) =>
-                                            replaceArrayItem("news", index, {
-                                              ...newsItem,
-                                              excerpt: event.target.value,
-                                            })
-                                          }
-                                        />
-                                      </Field>
-                                      <div className="md:col-span-2 flex justify-end">
-                                        <RemoveButton onClick={() => removeArrayItem("news", index)} />
-                                      </div>
-                                    </div>
-                                  </ArrayCard>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="space-y-4">
-                            <ArrayHeader
                               title="Gallery"
                               subtitle="Kumpulan foto dan caption galeri sekolah"
                               onAdd={() => addArrayItem("gallery", createEmptyGalleryItem())}
@@ -1186,17 +1295,18 @@ export default function Admin() {
                                 {selectedSchool.gallery.map((galleryItem, index) => (
                                   <ArrayCard key={`${galleryItem.caption || "gallery"}-${index}`}>
                                     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
-                                      <Field label="Foto">
-                                        <Input
+                                      <div className="md:col-span-2">
+                                        <ImageUploadField
+                                          label="Foto"
                                           value={galleryItem.photo}
-                                          onChange={(event) =>
+                                          onChange={(next) =>
                                             replaceArrayItem("gallery", index, {
                                               ...galleryItem,
-                                              photo: event.target.value,
+                                              photo: next,
                                             })
                                           }
                                         />
-                                      </Field>
+                                      </div>
                                       <div className="flex items-end justify-end">
                                         <RemoveButton onClick={() => removeArrayItem("gallery", index)} />
                                       </div>

@@ -94,21 +94,6 @@ type CmsSchoolPayload = {
     icon: string;
     count: number;
   }>;
-  achievements: Array<{
-    title: string;
-    year: string;
-    level: string;
-    description: string;
-    photo?: string;
-  }>;
-  news: Array<{
-    id: number;
-    title: string;
-    date: string;
-    excerpt: string;
-    thumbnail: string;
-    category: string;
-  }>;
   gallery: Array<{
     photo: string;
     caption: string;
@@ -362,22 +347,6 @@ export async function syncCmsSchoolRecord(school: CmsSchoolPayload): Promise<voi
       photo: facility.photo,
       icon: facility.icon,
       count: facility.count,
-    }))),
-    replaceRowsBySchoolId("school_achievements", schoolId, school.achievements.map((achievement) => ({
-      school_id: schoolId,
-      title: achievement.title,
-      year: achievement.year,
-      level: achievement.level,
-      description: achievement.description,
-      photo: achievement.photo ?? null,
-    }))),
-    replaceRowsBySchoolId("school_news", schoolId, school.news.map((newsItem) => ({
-      school_id: schoolId,
-      title: newsItem.title,
-      date: newsItem.date,
-      excerpt: newsItem.excerpt,
-      thumbnail: newsItem.thumbnail,
-      category: newsItem.category,
     }))),
     replaceRowsBySchoolId("school_gallery", schoolId, school.gallery.map((item) => ({
       school_id: schoolId,

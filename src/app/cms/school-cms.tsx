@@ -370,8 +370,6 @@ function mergeSchoolFromRemote(base: SchoolFull, row?: SchoolTableRow, related?:
   staff?: RelatedRow[];
   teachers?: RelatedRow[];
   facilities?: RelatedRow[];
-  achievements?: RelatedRow[];
-  news?: RelatedRow[];
   gallery?: RelatedRow[];
 }, roleStats?: Map<RoleStatRole, RoleStatRow>): SchoolFull {
   if (!row) return base;
@@ -497,27 +495,6 @@ function mergeSchoolFromRemote(base: SchoolFull, row?: SchoolTableRow, related?:
     }));
   }
 
-  if (related?.achievements?.length) {
-    school.achievements = related.achievements.map((achievement) => ({
-      title: String(achievement.title ?? ""),
-      year: String(achievement.year ?? ""),
-      level: String(achievement.level ?? ""),
-      description: String(achievement.description ?? ""),
-      photo: achievement.photo ? String(achievement.photo) : undefined,
-    }));
-  }
-
-  if (related?.news?.length) {
-    school.news = related.news.map((newsItem) => ({
-      id: Number(newsItem.id ?? Date.now()),
-      title: String(newsItem.title ?? ""),
-      date: String(newsItem.date ?? ""),
-      excerpt: String(newsItem.excerpt ?? ""),
-      thumbnail: String(newsItem.thumbnail ?? ""),
-      category: String(newsItem.category ?? "Kegiatan"),
-    }));
-  }
-
   if (related?.gallery?.length) {
     school.gallery = related.gallery.map((item) => ({
       photo: String(item.photo ?? ""),
@@ -531,15 +508,13 @@ function mergeSchoolFromRemote(base: SchoolFull, row?: SchoolTableRow, related?:
 async function loadSchoolsFromSupabase(): Promise<SchoolFull[] | null> {
   if (!HAS_SUPABASE) return null;
 
-  const [schoolsRows, principalRows, staffRows, teacherRows, facilityRows, achievementRows, newsRows, galleryRows, roleStatRows] =
+  const [schoolsRows, principalRows, staffRows, teacherRows, facilityRows, galleryRows, roleStatRows] =
     await Promise.all([
       supabaseSelect<SchoolTableRow>("schools"),
       supabaseSelect<RelatedRow>("school_principals"),
       supabaseSelect<RelatedRow>("school_staff"),
       supabaseSelect<RelatedRow>("school_teachers"),
       supabaseSelect<RelatedRow>("school_facilities_ui"),
-      supabaseSelect<RelatedRow>("school_achievements"),
-      supabaseSelect<RelatedRow>("school_news"),
       supabaseSelect<RelatedRow>("school_gallery"),
       supabaseSelect<RoleStatRow>("school_role_stats"),
     ]);
@@ -549,8 +524,6 @@ async function loadSchoolsFromSupabase(): Promise<SchoolFull[] | null> {
   const staffBySchoolId = new Map<number, RelatedRow[]>();
   const teachersBySchoolId = new Map<number, RelatedRow[]>();
   const facilitiesBySchoolId = new Map<number, RelatedRow[]>();
-  const achievementsBySchoolId = new Map<number, RelatedRow[]>();
-  const newsBySchoolId = new Map<number, RelatedRow[]>();
   const galleryBySchoolId = new Map<number, RelatedRow[]>();
   const roleStatsBySchoolId = new Map<number, Map<RoleStatRole, RoleStatRow>>();
 
@@ -562,12 +535,6 @@ async function loadSchoolsFromSupabase(): Promise<SchoolFull[] | null> {
   }
   for (const row of facilityRows) {
     facilitiesBySchoolId.set(row.school_id, [...(facilitiesBySchoolId.get(row.school_id) ?? []), row]);
-  }
-  for (const row of achievementRows) {
-    achievementsBySchoolId.set(row.school_id, [...(achievementsBySchoolId.get(row.school_id) ?? []), row]);
-  }
-  for (const row of newsRows) {
-    newsBySchoolId.set(row.school_id, [...(newsBySchoolId.get(row.school_id) ?? []), row]);
   }
   for (const row of galleryRows) {
     galleryBySchoolId.set(row.school_id, [...(galleryBySchoolId.get(row.school_id) ?? []), row]);
@@ -584,8 +551,6 @@ async function loadSchoolsFromSupabase(): Promise<SchoolFull[] | null> {
       staff: staffBySchoolId.get(base.id) ?? [],
       teachers: teachersBySchoolId.get(base.id) ?? [],
       facilities: facilitiesBySchoolId.get(base.id) ?? [],
-      achievements: achievementsBySchoolId.get(base.id) ?? [],
-      news: newsBySchoolId.get(base.id) ?? [],
       gallery: galleryBySchoolId.get(base.id) ?? [],
     }, roleStatsBySchoolId.get(base.id))
   );
@@ -613,8 +578,6 @@ async function syncSchoolToSupabase(school: SchoolFull, token?: string): Promise
     supabaseDeleteBySchoolId("school_staff", schoolId, token),
     supabaseDeleteBySchoolId("school_teachers", schoolId, token),
     supabaseDeleteBySchoolId("school_facilities_ui", schoolId, token),
-    supabaseDeleteBySchoolId("school_achievements", schoolId, token),
-    supabaseDeleteBySchoolId("school_news", schoolId, token),
     supabaseDeleteBySchoolId("school_gallery", schoolId, token),
   ]);
 
@@ -652,24 +615,6 @@ async function syncSchoolToSupabase(school: SchoolFull, token?: string): Promise
     photo: facility.photo,
     icon: facility.icon,
     count: facility.count,
-  })), token);
-
-  await supabaseInsert("school_achievements", school.achievements.map((achievement) => ({
-    school_id: schoolId,
-    title: achievement.title,
-    year: achievement.year,
-    level: achievement.level,
-    description: achievement.description,
-    photo: achievement.photo ?? null,
-  })), token);
-
-  await supabaseInsert("school_news", school.news.map((newsItem) => ({
-    school_id: schoolId,
-    title: newsItem.title,
-    date: newsItem.date,
-    excerpt: newsItem.excerpt,
-    thumbnail: newsItem.thumbnail,
-    category: newsItem.category,
   })), token);
 
   await supabaseInsert("school_gallery", school.gallery.map((item) => ({
