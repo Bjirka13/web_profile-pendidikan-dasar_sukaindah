@@ -143,7 +143,7 @@ function SchoolCard({ school }: { school: SchoolFull }) {
       <div className="relative h-44 bg-muted overflow-hidden">
         <img src={school.cardImage} alt={`Gedung ${school.name}`} className="w-full h-full object-cover" />
         <div className="absolute top-3 right-3">
-          <span className="bg-accent text-foreground text-xs font-bold px-2.5 py-1 rounded-full shadow">Akreditasi {school.accreditation}</span>
+          <span className="bg-accent text-foreground text-xs font-bold px-2.5 py-1 rounded-full shadow">Akreditasi {school.accreditation || "-"}</span>
         </div>
       </div>
       <div className="flex-1 p-5">
@@ -155,11 +155,11 @@ function SchoolCard({ school }: { school: SchoolFull }) {
           </li>
           <li className="flex items-start gap-2.5">
             <User className="w-4 h-4 mt-0.5 text-primary shrink-0" strokeWidth={2} />
-            <span style={{ fontFamily: font }}>{school.principal.name}</span>
+            <span style={{ fontFamily: font }}>{school.principal.name || "Belum ada data"}</span>
           </li>
           <li className="flex items-start gap-2.5">
             <Phone className="w-4 h-4 mt-0.5 text-primary shrink-0" strokeWidth={2} />
-            <span style={{ fontFamily: font }}>{school.contact}</span>
+            <span style={{ fontFamily: font }}>{school.contact || "-"}</span>
           </li>
         </ul>
       </div>

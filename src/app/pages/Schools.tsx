@@ -13,16 +13,16 @@ function SchoolCard({ school }: { school: SchoolFull }) {
       <div className="relative h-52 bg-muted overflow-hidden">
         <img src={school.cardImage} alt={school.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-        <div className="absolute top-4 right-4 bg-accent/95 text-foreground text-xs font-semibold uppercase tracking-[0.2em] rounded-full px-3 py-1 shadow-lg">
-          {school.accreditation}
+          <div className="absolute top-4 right-4 bg-accent/95 text-foreground text-xs font-semibold uppercase tracking-[0.2em] rounded-full px-3 py-1 shadow-lg">
+          {school.accreditation || "-"}
         </div>
       </div>
       <div className="flex-1 p-6 flex flex-col">
         <h3 className="text-foreground font-extrabold text-lg mb-3 leading-tight" style={{ fontFamily: font }}>{school.name}</h3>
         <div className="space-y-3 text-sm text-muted-foreground mb-6">
           <p className="flex items-center gap-2"><MapPin className="w-4 h-4 text-primary" />{school.address}, Desa {school.desa}</p>
-          <p className="flex items-center gap-2"><User className="w-4 h-4 text-primary" />{school.principal.name}</p>
-          <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-primary" />{school.contact}</p>
+          <p className="flex items-center gap-2"><User className="w-4 h-4 text-primary" />{school.principal.name || "Belum ada data"}</p>
+          <p className="flex items-center gap-2"><Phone className="w-4 h-4 text-primary" />{school.contact || "-"}</p>
         </div>
         <button
           onClick={() => navigate(`/sekolah/${school.slug}`)}
@@ -83,3 +83,4 @@ export default function Schools() {
     </div>
   );
 }
+

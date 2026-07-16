@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "dev": "vite",
+    "dev": "node scripts/dev-full.mjs",
+    "dev:frontend": "vite",
+    "dev:backend": "pnpm --dir backend run start",
     "sync:backend": "pnpm --dir backend run sync"
   },
   "dependencies": {

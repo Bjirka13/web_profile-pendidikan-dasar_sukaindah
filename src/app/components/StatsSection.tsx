@@ -1,17 +1,14 @@
 import { useMemo, useState } from "react";
-import { Users, GraduationCap, School, BookOpen, Clock } from "lucide-react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { BookOpen, Clock, GraduationCap, School, Users } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card, CardContent } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { type SchoolFull } from "../data/schools";
 import { useSchoolCms } from "../cms/school-cms";
 
-const SEMESTER_OPTIONS = [
-  "2025/2026 Ganjil",
-  "2025/2026 Genap",
-] as const;
-
+const SEMESTER_OPTIONS = ["2025/2026 Ganjil", "2025/2026 Genap"] as const;
 type SemesterKey = (typeof SEMESTER_OPTIONS)[number];
+const PIE_COLORS = ["#1e6b3a", "#e8b800"];
 
 interface StatsAggregate {
   totalSchools: number;
@@ -21,15 +18,15 @@ interface StatsAggregate {
   totalStudyGroups: number;
   maleStudents: number;
   femaleStudents: number;
-  gradeStats: Array<{ label: string; male: number; female: number }>;
+  roleStats: Array<{ label: string; male: number; female: number }>;
 }
 
-function normalizeGradeLabel(label: string): string {
-  return label.replace(/\s*\.\s*[A-Z]$/i, "").trim();
+function classroomCount(school: SchoolFull): number {
+  return school.totalClassrooms || school.facilities.find((facility) => facility.name.toLowerCase() === "ruang kelas")?.count || 0;
 }
 
 function aggregateSchoolStats(schools: SchoolFull[]): StatsAggregate {
-  const gradeMap = new Map<string, { label: string; male: number; female: number }>();
+  const roleMap = new Map<string, { label: string; male: number; female: number }>();
 
   const totals = schools.reduce(
     (acc, school) => {
@@ -37,17 +34,17 @@ function aggregateSchoolStats(schools: SchoolFull[]): StatsAggregate {
       acc.maleStudents += school.maleStudents;
       acc.femaleStudents += school.femaleStudents;
       acc.totalTeachers += school.totalTeachers;
-      acc.totalClassrooms += school.totalClassrooms;
+      acc.totalClassrooms += classroomCount(school);
       acc.totalStudyGroups += school.totalStudyGroups;
 
-      school.gradeStats.forEach((grade) => {
-        const normalizedLabel = normalizeGradeLabel(grade.label);
-        const existing = gradeMap.get(normalizedLabel);
+      school.roleStats.forEach((role) => {
+        const label = role.role === "guru" ? "Guru" : role.role === "tenaga_didik" ? "Tendik" : "Peserta Didik";
+        const existing = roleMap.get(label);
         if (existing) {
-          existing.male += grade.male;
-          existing.female += grade.female;
+          existing.male += role.male;
+          existing.female += role.female;
         } else {
-          gradeMap.set(normalizedLabel, { label: normalizedLabel, male: grade.male, female: grade.female });
+          roleMap.set(label, { label, male: role.male, female: role.female });
         }
       });
 
@@ -61,33 +58,32 @@ function aggregateSchoolStats(schools: SchoolFull[]): StatsAggregate {
       totalStudyGroups: 0,
       maleStudents: 0,
       femaleStudents: 0,
-      gradeStats: [] as Array<{ label: string; male: number; female: number }>,
+      roleStats: [] as Array<{ label: string; male: number; female: number }>,
     } satisfies StatsAggregate
   );
 
-  totals.gradeStats = Array.from(gradeMap.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
+  totals.roleStats = Array.from(roleMap.values()).sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true }));
   return totals;
 }
-
-const PIE_COLORS = ["#1e6b3a", "#e8b800"];
 
 export function StatsSection() {
   const { schools } = useSchoolCms();
   const [selectedSemester, setSelectedSemester] = useState<SemesterKey>(SEMESTER_OPTIONS[0]);
-  const SEMESTER_STATS = useMemo<Record<SemesterKey, StatsAggregate>>(
+  const semesterStats = useMemo<Record<SemesterKey, StatsAggregate>>(
     () => ({
       "2025/2026 Ganjil": aggregateSchoolStats(schools),
       "2025/2026 Genap": aggregateSchoolStats(schools),
     }),
     [schools]
   );
-  const semester = SEMESTER_STATS[selectedSemester as SemesterKey];
+
+  const semester = semesterStats[selectedSemester];
   const pieData = [
     { name: "Laki-laki", value: semester.maleStudents },
     { name: "Perempuan", value: semester.femaleStudents },
   ];
 
-  const barData = semester.gradeStats.map((item) => ({
+  const roleData = semester.roleStats.map((item) => ({
     label: item.label,
     male: item.male,
     female: item.female,
@@ -110,7 +106,7 @@ export function StatsSection() {
             <p className="text-amber-700 font-semibold uppercase tracking-[0.3em] mb-3">Statistik</p>
             <h2 className="text-3xl md:text-4xl font-extrabold text-foreground">Ringkasan Data Pendidikan</h2>
             <p className="mt-4 text-muted-foreground max-w-2xl">
-              Visualisasi data per semester untuk sekolah dasar di Desa Sukaindah.
+              Visualisasi data dari tabel `schools` dan `school_role_stats`.
             </p>
           </div>
 
@@ -159,24 +155,30 @@ export function StatsSection() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="text-lg font-bold text-foreground">Jumlah Siswa per Kelas</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Data semester {selectedSemester}</p>
+                  <h3 className="text-lg font-bold text-foreground">Komposisi Peran Warga Sekolah</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Data dari tabel `school_role_stats`</p>
                 </div>
               </div>
               <div className="h-[320px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barData} margin={{ top: 10, right: 8, left: -18, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                    <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{ borderRadius: 12, fontSize: 13, border: "1px solid rgba(0,0,0,0.1)" }}
-                      formatter={(value: number, name: string) => [value, name === "male" ? "Laki-laki" : "Perempuan"]}
-                    />
-                    <Bar dataKey="male" name="Laki-laki" stackId="a" fill="#1e6b3a" barSize={24} radius={[0, 0, 0, 0]} />
-                    <Bar dataKey="female" name="Perempuan" stackId="a" fill="#e8b800" barSize={24} radius={[0, 0, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {roleData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={roleData} margin={{ top: 10, right: 8, left: -18, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
+                      <XAxis dataKey="label" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                      <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
+                      <Tooltip
+                        contentStyle={{ borderRadius: 12, fontSize: 13, border: "1px solid rgba(0,0,0,0.1)" }}
+                        formatter={(value: number, name: string) => [value, name === "male" ? "Laki-laki" : "Perempuan"]}
+                      />
+                      <Bar dataKey="male" name="Laki-laki" stackId="a" fill="#1e6b3a" barSize={24} radius={[0, 0, 0, 0]} />
+                      <Bar dataKey="female" name="Perempuan" stackId="a" fill="#e8b800" barSize={24} radius={[0, 0, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-full items-center justify-center rounded-2xl border border-dashed border-border text-sm text-muted-foreground">
+                    Belum ada data role.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -187,7 +189,7 @@ export function StatsSection() {
               <div className="flex items-center justify-between mb-5">
                 <div>
                   <h3 className="text-lg font-bold text-foreground">Distribusi Gender Siswa</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Semester {selectedSemester}</p>
+                  <p className="text-sm text-muted-foreground mt-1">Data dari kolom total siswa</p>
                 </div>
               </div>
               <div className="h-[320px]">
@@ -215,7 +217,7 @@ export function StatsSection() {
                     <span className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[index] }} />
                     <div>
                       <p className="text-sm font-semibold">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{Math.round((item.value / semester.totalStudents) * 100)}% dari total</p>
+                      <p className="text-xs text-muted-foreground">{semester.totalStudents > 0 ? Math.round((item.value / semester.totalStudents) * 100) : 0}% dari total</p>
                     </div>
                   </div>
                 ))}

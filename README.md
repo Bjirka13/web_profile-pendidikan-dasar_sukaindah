@@ -3,11 +3,15 @@
 
   This is a code bundle for Web Portal Pendidikan Dasar. The original project is available at https://www.figma.com/design/ULTGPQr5ZfnLTosVs9PvfM/Web-Portal-Pendidikan-Dasar.
 
-  ## Running the code
+## Running the code
 
-  Run `npm i` to install the dependencies.
+Run `npm i` to install the dependencies.
 
-  Run `npm run dev` to start the development server.
+Run `npm run dev` to start the frontend and backend together.
+
+If you only want the frontend, run `npm run dev:frontend`.
+
+If you only want the backend, run `npm run dev:backend`.
 
 ## WordPress CMS setup
 
@@ -25,16 +29,25 @@ Dengan cara ini, admin bisa edit konten lewat WordPress, sementara website tetap
 1. Copy `.env.example` menjadi `.env.local` di root project.
 2. Isi:
    - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_PUBLISHABLE_KEY` atau `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - `VITE_BACKEND_URL` kalau backend tidak jalan di `http://localhost:4000`
 3. Buka `/admin`.
 4. Login pakai akun berikut:
-   - `ops1` / `ops1-2026`
-   - `ops2` / `ops2-2026`
-   - `ops3` / `ops3-2026`
-   - `ops4` / `ops4-2026`
+   - `ops1@admin.com` / `password`
+   - `ops2@admin.com` / `password`
+   - `ops3@admin.com` / `password`
+   - `ops4@admin.com` / `password`
 5. Klik `Sync Supabase` untuk seed data awal ke database.
 
 Kalau Supabase aktif, admin panel akan load dan sync data sekolah lewat Supabase, lalu tetap memakai `localStorage` sebagai cache lokal. Akun ops hanya bisa edit sekolah yang sesuai, termasuk berita dan koleksi di sekolah itu saja.
+
+## Backend deployment
+
+Kalau backend di-deploy ke Vercel sebagai project terpisah, isi `VITE_BACKEND_URL` dengan URL production deployment backend.
+
+- URL production biasanya berbentuk `https://<project-name>.vercel.app`
+- URL preview Vercel berubah-ubah per deployment, jadi jangan dipakai untuk env production
+- Setelah update environment variable di Vercel, buat deployment baru supaya nilai baru dipakai
 
 ## Mapping data scraping
 

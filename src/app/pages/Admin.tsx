@@ -185,39 +185,35 @@ function EmptyState({ text }: { text: string }) {
   );
 }
 
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
-    reader.onerror = () => reject(new Error("Gagal membaca file gambar."));
-    reader.readAsDataURL(file);
-  });
-}
-
 function ImageUploadField({
   label,
   value,
   onChange,
+  onUploadFile,
   hint,
 }: {
   label: string;
   value: string;
   onChange: (next: string) => void;
+  onUploadFile: (file: File) => Promise<string>;
   hint?: string;
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
-      const dataUrl = await fileToDataUrl(file);
-      onChange(dataUrl);
+      setUploading(true);
+      const publicUrl = await onUploadFile(file);
+      onChange(publicUrl);
     } catch (error) {
       console.error(error);
-      window.alert("Gagal membaca gambar.");
+      window.alert(error instanceof Error ? error.message : "Gagal mengunggah gambar.");
     } finally {
+      setUploading(false);
       event.target.value = "";
     }
   };
@@ -237,8 +233,8 @@ function ImageUploadField({
             onChange={(event) => onChange(event.target.value)}
             placeholder="Tempel URL gambar atau upload file"
           />
-          <Button type="button" variant="outline" onClick={() => inputRef.current?.click()}>
-            Upload
+          <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploading}>
+            {uploading ? "Mengunggah..." : "Upload"}
           </Button>
           <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
         </div>
@@ -329,6 +325,7 @@ export default function Admin() {
     adminSession,
     saveSchool,
     syncSchoolsToSupabase,
+    uploadSchoolImage,
     isSupabaseEnabled,
     login,
     logout,
@@ -338,7 +335,7 @@ export default function Admin() {
   const [dirty, setDirty] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [authUsername, setAuthUsername] = useState("ops1");
+  const [authUsername, setAuthUsername] = useState("");
   const [authPassword, setAuthPassword] = useState("");
   const [authError, setAuthError] = useState<string | null>(null);
   const [authenticating, setAuthenticating] = useState(false);
@@ -419,6 +416,14 @@ export default function Admin() {
     } as Partial<SchoolFull>);
   };
 
+  const uploadDraftImage = async (folder: string, file: File) => {
+    if (!selectedSchool) {
+      throw new Error("Sekolah belum dipilih.");
+    }
+
+    return uploadSchoolImage(selectedSchool.id, folder, file);
+  };
+
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setAuthError(null);
@@ -429,7 +434,13 @@ export default function Admin() {
       setSearchParams({ school: session.schoolSlug });
       setAuthPassword("");
     } catch (error) {
-      setAuthError(error instanceof Error ? error.message : "Login gagal.");
+      if (error instanceof TypeError) {
+        setAuthError(
+          "Gagal terhubung ke server backend. Pastikan backend berjalan dan VITE_BACKEND_URL benar."
+        );
+      } else {
+        setAuthError(error instanceof Error ? error.message : "Login gagal.");
+      }
     } finally {
       setAuthenticating(false);
     }
@@ -447,7 +458,7 @@ export default function Admin() {
     if (!selectedSchool) return;
     setSaving(true);
     try {
-      saveSchool(selectedSchool);
+      await saveSchool(selectedSchool);
       setSelectedId(selectedSchool.id);
       setSearchParams((current) => {
         current.set("school", selectedSchool.slug);
@@ -495,14 +506,14 @@ export default function Admin() {
                     CMS Admin
                   </span>
                   <h1 className="text-4xl md:text-6xl font-extrabold leading-tight">
-                    Login admin cuma untuk sekolah yang ditugaskan.
+                    Login admin diproses melalui Supabase.
                   </h1>
                   <p className="max-w-xl text-white/75 text-base md:text-lg">
-                    Akun <strong>ops1</strong> sampai <strong>ops4</strong> masing-masing dikunci ke 1 sekolah.
-                    Setelah login, admin cuma bisa edit data sekolahnya sendiri, termasuk berita, galeri, dan konten lain.
+                    Setelah login, admin hanya bisa mengelola sekolah yang ditugaskan ke akun tersebut.
+                    Semua perubahan disimpan ke Supabase dan dapat diaudit kembali.
                   </p>
                   <div className="flex flex-wrap gap-3 text-sm">
-                    {["ops1 -> SDN 1", "ops2 -> SDN 2", "ops3 -> SDN 3", "ops4 -> SDN 4"].map((item) => (
+                    {["Akun admin terhubung ke database", "Hak akses sekolah dipetakan dari Supabase", "Perubahan tersimpan otomatis"].map((item) => (
                       <span key={item} className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 backdrop-blur-sm">
                         {item}
                       </span>
@@ -519,21 +530,21 @@ export default function Admin() {
                       <div>
                         <h2 className="text-2xl font-extrabold">Masuk Admin</h2>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Gunakan username ops dan password masing-masing akun.
+                          Masukkan kredensial admin yang sudah terdaftar di Supabase.
                         </p>
                       </div>
                     </div>
 
                     <form className="space-y-4" onSubmit={handleLogin}>
-                      <Field label="Username">
-                        <Input value={authUsername} onChange={(event) => setAuthUsername(event.target.value)} placeholder="ops1" autoComplete="username" />
+                      <Field label="Email Admin">
+                        <Input value={authUsername} onChange={(event) => setAuthUsername(event.target.value)} placeholder="ops1@admin.com" autoComplete="username" inputMode="email" />
                       </Field>
                       <Field label="Password">
                         <Input
                           type="password"
                           value={authPassword}
                           onChange={(event) => setAuthPassword(event.target.value)}
-                          placeholder="ops1-2026"
+                          placeholder="password akun"
                           autoComplete="current-password"
                         />
                       </Field>
@@ -549,14 +560,6 @@ export default function Admin() {
                         {authenticating ? "Memproses..." : "Masuk ke Admin"}
                       </Button>
                     </form>
-
-                    <div className="rounded-2xl bg-muted/70 p-4 text-sm text-muted-foreground space-y-2">
-                      <p className="font-semibold text-foreground">Catatan akun</p>
-                      <p>ops1 = SDN Sukaindah 01</p>
-                      <p>ops2 = SDN Sukaindah 02</p>
-                      <p>ops3 = SDN Sukaindah 03</p>
-                      <p>ops4 = SDN Sukaindah 04</p>
-                    </div>
                   </CardContent>
                 </Card>
               </div>
@@ -759,12 +762,14 @@ export default function Admin() {
                             label="Hero Image"
                             value={selectedSchool.heroImage}
                             onChange={(next) => updateDraft({ heroImage: next })}
+                            onUploadFile={(file) => uploadDraftImage("school-hero", file)}
                             hint="Upload atau tempel URL"
                           />
                           <ImageUploadField
                             label="Card Image"
                             value={selectedSchool.cardImage}
                             onChange={(next) => updateDraft({ cardImage: next })}
+                            onUploadFile={(file) => uploadDraftImage("school-card", file)}
                           />
                           <Field label="Maps Embed URL" className="md:col-span-2">
                             <Textarea value={selectedSchool.mapsEmbed} onChange={(event) => updateDraft({ mapsEmbed: event.target.value })} />
@@ -825,6 +830,7 @@ export default function Admin() {
                                   principal: { ...selectedSchool.principal, photo: next },
                                 })
                               }
+                              onUploadFile={(file) => uploadDraftImage("principal", file)}
                             />
                           </div>
 
@@ -840,6 +846,34 @@ export default function Admin() {
                                 className="min-h-48"
                               />
                             </Field>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-4 lg:grid-cols-2">
+                          <div className="rounded-3xl border border-border bg-card p-5">
+                            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pratinjau ringkasan publik</p>
+                            <p className="mt-3 text-lg font-bold text-foreground">
+                              {selectedSchool.profileSummary || "Belum ada ringkasan profil"}
+                            </p>
+                            <p className="mt-2 text-sm text-muted-foreground">
+                              Data ini tersimpan di kolom `schools.profile_summary` dan dipakai halaman publik.
+                            </p>
+                          </div>
+                          <div className="rounded-3xl border border-border bg-card p-5">
+                            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Detail profil publik</p>
+                            <div className="mt-3 space-y-2">
+                              {selectedSchool.profileDetails.length > 0 ? (
+                                selectedSchool.profileDetails.slice(0, 6).map((detail, index) => (
+                                  <div key={`${detail}-${index}`} className="rounded-2xl bg-muted/40 px-3 py-2 text-sm text-foreground/80">
+                                    {detail}
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
+                                  Belum ada detail profil di `profile_details`.
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
 
@@ -902,6 +936,34 @@ export default function Admin() {
                           <div className="rounded-3xl border border-border bg-card p-5">
                             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Rombel</p>
                             <p className="mt-3 text-3xl font-extrabold text-foreground">{selectedSchool.totalStudyGroups.toLocaleString("id")}</p>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-foreground">Statistik role</p>
+                              <p className="text-xs text-muted-foreground">Dibaca dari tabel `school_role_stats` dan tidak diedit manual.</p>
+                            </div>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-3">
+                            {selectedSchool.roleStats.length > 0 ? (
+                              selectedSchool.roleStats.map((roleStat) => (
+                                <div key={roleStat.role} className="rounded-3xl border border-border bg-card p-5">
+                                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                                    {roleStat.role === "guru" ? "Guru" : roleStat.role === "tenaga_didik" ? "Tenaga Didik" : "Peserta Didik"}
+                                  </p>
+                                  <p className="mt-3 text-3xl font-extrabold text-foreground">{roleStat.total.toLocaleString("id")}</p>
+                                  <p className="mt-2 text-xs text-muted-foreground">
+                                    Laki-laki {roleStat.male.toLocaleString("id")} · Perempuan {roleStat.female.toLocaleString("id")}
+                                  </p>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="rounded-3xl border border-dashed border-border bg-card p-5 text-sm text-muted-foreground md:col-span-3">
+                                Belum ada data role di Supabase.
+                              </div>
+                            )}
                           </div>
                         </div>
                       </TabsContent>
@@ -975,6 +1037,7 @@ export default function Admin() {
                                             photo: next || undefined,
                                           })
                                         }
+                                        onUploadFile={(file) => uploadDraftImage("achievements", file)}
                                       />
                                     </div>
                                     <Field label="Deskripsi" className="md:col-span-2">
@@ -1059,6 +1122,7 @@ export default function Admin() {
                                             thumbnail: next,
                                           })
                                         }
+                                        onUploadFile={(file) => uploadDraftImage("news", file)}
                                       />
                                     </div>
                                     <Field label="Excerpt" className="md:col-span-2">
@@ -1115,13 +1179,14 @@ export default function Admin() {
                                         />
                                       </Field>
                                       <div className="md:col-span-2">
-                                        <ImageUploadField
-                                          label="Foto"
-                                          value={person.photo}
-                                          onChange={(next) =>
-                                            replaceArrayItem("staff", index, { ...person, photo: next })
-                                          }
-                                        />
+                                      <ImageUploadField
+                                        label="Foto"
+                                        value={person.photo}
+                                        onChange={(next) =>
+                                          replaceArrayItem("staff", index, { ...person, photo: next })
+                                        }
+                                        onUploadFile={(file) => uploadDraftImage("staff", file)}
+                                      />
                                       </div>
                                       <div className="flex items-end justify-between gap-3">
                                         <div className="flex flex-wrap gap-2">
@@ -1193,13 +1258,14 @@ export default function Admin() {
                                         />
                                       </Field>
                                       <div className="md:col-span-2">
-                                        <ImageUploadField
-                                          label="Foto"
-                                          value={teacher.photo}
-                                          onChange={(next) =>
-                                            replaceArrayItem("teachers", index, { ...teacher, photo: next })
-                                          }
-                                        />
+                                      <ImageUploadField
+                                        label="Foto"
+                                        value={teacher.photo}
+                                        onChange={(next) =>
+                                          replaceArrayItem("teachers", index, { ...teacher, photo: next })
+                                        }
+                                        onUploadFile={(file) => uploadDraftImage("teachers", file)}
+                                      />
                                       </div>
                                       <div className="md:col-span-2 flex justify-end">
                                         <RemoveButton onClick={() => removeArrayItem("teachers", index)} />
@@ -1253,13 +1319,14 @@ export default function Admin() {
                                         />
                                       </Field>
                                       <div className="md:col-span-2">
-                                        <ImageUploadField
-                                          label="Foto"
-                                          value={facility.photo}
-                                          onChange={(next) =>
-                                            replaceArrayItem("facilities", index, { ...facility, photo: next })
-                                          }
-                                        />
+                                      <ImageUploadField
+                                        label="Foto"
+                                        value={facility.photo}
+                                        onChange={(next) =>
+                                          replaceArrayItem("facilities", index, { ...facility, photo: next })
+                                        }
+                                        onUploadFile={(file) => uploadDraftImage("facilities", file)}
+                                      />
                                       </div>
                                       <Field label="Deskripsi" className="md:col-span-2">
                                         <Textarea
@@ -1296,16 +1363,17 @@ export default function Admin() {
                                   <ArrayCard key={`${galleryItem.caption || "gallery"}-${index}`}>
                                     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
                                       <div className="md:col-span-2">
-                                        <ImageUploadField
-                                          label="Foto"
-                                          value={galleryItem.photo}
-                                          onChange={(next) =>
-                                            replaceArrayItem("gallery", index, {
-                                              ...galleryItem,
-                                              photo: next,
-                                            })
-                                          }
-                                        />
+                                      <ImageUploadField
+                                        label="Foto"
+                                        value={galleryItem.photo}
+                                        onChange={(next) =>
+                                          replaceArrayItem("gallery", index, {
+                                            ...galleryItem,
+                                            photo: next,
+                                          })
+                                        }
+                                        onUploadFile={(file) => uploadDraftImage("gallery", file)}
+                                      />
                                       </div>
                                       <div className="flex items-end justify-end">
                                         <RemoveButton onClick={() => removeArrayItem("gallery", index)} />

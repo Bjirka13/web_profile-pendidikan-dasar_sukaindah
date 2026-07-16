@@ -5,11 +5,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from "./ui/dialog";
-import { School } from "./SchoolsSection";
+import type { SchoolFull } from "../data/schools";
 import { Building2, Award, Users, GraduationCap, MapPin, Phone, User } from "lucide-react";
 
 interface SchoolDetailDialogProps {
-  school: School | null;
+  school: SchoolFull | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -45,7 +45,7 @@ export function SchoolDetailDialog({ school, open, onOpenChange }: SchoolDetailD
                 <p className="text-gray-600 mb-1">Akreditasi</p>
                 <div className="flex items-center gap-2">
                   <Award className="w-4 h-4 text-yellow-500" />
-                  <p>{school.akreditasi}</p>
+                  <p>{school.accreditation}</p>
                 </div>
               </div>
             </div>
@@ -69,7 +69,7 @@ export function SchoolDetailDialog({ school, open, onOpenChange }: SchoolDetailD
                 <User className="w-4 h-4 flex-shrink-0 text-gray-500" />
                 <div>
                   <p className="text-gray-600 mb-1">Kepala Sekolah</p>
-                  <p>{school.principal}</p>
+                  <p>{school.principal?.name || "-"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -91,12 +91,12 @@ export function SchoolDetailDialog({ school, open, onOpenChange }: SchoolDetailD
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white p-3 rounded-lg text-center">
                 <Users className="w-6 h-6 mx-auto mb-2 text-blue-600" />
-                <p className="text-2xl mb-1">{school.students}</p>
+                <p className="text-2xl mb-1">{school.totalStudents}</p>
                 <p className="text-sm text-gray-600">Siswa</p>
               </div>
               <div className="bg-white p-3 rounded-lg text-center">
                 <GraduationCap className="w-6 h-6 mx-auto mb-2 text-green-600" />
-                <p className="text-2xl mb-1">{school.teachers}</p>
+                <p className="text-2xl mb-1">{school.totalTeachers}</p>
                 <p className="text-sm text-gray-600">Guru</p>
               </div>
             </div>
