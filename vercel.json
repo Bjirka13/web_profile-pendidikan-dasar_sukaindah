@@ -10,7 +10,7 @@
     },
     "backend": {
       "root": "backend/",
-      "buildCommand": "npm run build",
+      "buildCommand": "npm install && npm run build",
       "devCommand": "npm run dev",
       "entrypoint": "dist/server.js"
     }
