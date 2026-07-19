@@ -201,6 +201,27 @@ async function listSupabaseStorageFilesForSchool(schoolId: number, schoolSlug: s
     throw new Error("Supabase environment is not configured.");
   }
 
+  const backendUrl = BACKEND_URL ? `${BACKEND_URL}/api/storage/files?schoolId=${encodeURIComponent(String(schoolId))}` : null;
+  if (backendUrl) {
+    try {
+      const response = await fetch(backendUrl, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const payload = (await response.json().catch(() => ({}))) as { success?: boolean; files?: StorageFileEntry[] };
+        if (payload.success && Array.isArray(payload.files)) {
+          return payload.files;
+        }
+      }
+    } catch (error) {
+      console.warn("Backend storage list fallback failed:", error);
+    }
+  }
+
   const schoolFolder = deriveSchoolStorageFolderName(schoolSlug || undefined, schoolName || undefined, schoolId);
   const folders = [
     "school-hero",

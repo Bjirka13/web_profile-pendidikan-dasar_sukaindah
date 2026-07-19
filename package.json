@@ -4,9 +4,9 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "node ./node_modules/vite/bin/vite.js build",
     "dev": "node scripts/dev-full.mjs",
-    "dev:frontend": "vite",
+    "dev:frontend": "node ./node_modules/vite/bin/vite.js",
     "dev:backend": "pnpm --dir backend run start",
     "sync:backend": "pnpm --dir backend run sync"
   },

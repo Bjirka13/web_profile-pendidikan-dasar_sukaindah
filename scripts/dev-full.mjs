@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { resolve } from "node:path";
+import { createServer } from "node:net";
 
 const rootDir = process.cwd();
 const nodeBin = process.execPath;
@@ -38,6 +39,21 @@ function startProcess(name, file, args, cwd) {
   return child;
 }
 
+async function isPortInUse(port) {
+  return new Promise((resolve) => {
+    const server = createServer();
+    server.once("error", (err) => {
+      server.close();
+      resolve(err.code === "EADDRINUSE");
+    });
+    server.once("listening", () => {
+      server.close();
+      resolve(false);
+    });
+    server.listen(port, "127.0.0.1");
+  });
+}
+
 function shutdown() {
   if (shuttingDown) {
     return;
@@ -52,9 +68,23 @@ process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
 process.on("exit", shutdown);
 
-if (!backendCli || !viteBin) {
-  throw new Error("Cannot locate local dev binaries. Run npm install first.");
+async function main() {
+  if (!backendCli || !viteBin) {
+    throw new Error("Cannot locate local dev binaries. Run npm install first.");
+  }
+
+  const backendPort = 4000;
+  const backendInUse = await isPortInUse(backendPort);
+  if (backendInUse) {
+    console.log(`Backend port ${backendPort} already in use; skipping backend startup.`);
+  } else {
+    startProcess("backend", backendCli, ["src/server.ts"], resolve(rootDir, "backend"));
+  }
+
+  startProcess("frontend", viteBin, [], rootDir);
 }
 
-startProcess("backend", backendCli, ["src/index.ts"], resolve(rootDir, "backend"));
-startProcess("frontend", viteBin, [], rootDir);
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});

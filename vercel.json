@@ -1,12 +1,28 @@
 {
-  "outputDirectory": "dist",
-  "builds": [
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "services": {
+    "frontend": {
+      "root": ".",
+      "framework": "vite",
+      "buildCommand": "node ./node_modules/vite/bin/vite.js build",
+      "devCommand": "node ./node_modules/vite/bin/vite.js --port 3000 --strictPort",
+      "outputDirectory": "dist"
+    },
+    "backend": {
+      "root": "backend/",
+      "buildCommand": "npm run build",
+      "devCommand": "npm run dev",
+      "entrypoint": "dist/server.js"
+    }
+  },
+  "rewrites": [
     {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "source": "/api/(.*)",
+      "destination": { "service": "backend" }
+    },
+    {
+      "source": "/(.*)",
+      "destination": { "service": "frontend" }
     }
   ]
 }
