@@ -22,6 +22,7 @@ pnpm-debug.log*
 
 # Backend local files
 /backend/node_modules/
+/backend/dist/
 /backend/data/
 /backend/.env
 /backend/.env*
