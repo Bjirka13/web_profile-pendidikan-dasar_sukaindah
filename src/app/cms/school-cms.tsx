@@ -4,9 +4,11 @@ import { type Achievement, type GalleryItem, type NewsItem, type RoleStats, type
 const ADMIN_STORAGE_KEY = "portal-pendidikan-admin-session-v1";
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL?.replace(/\/$/, "");
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+const SUPABASE_STORAGE_BUCKET = import.meta.env.VITE_SUPABASE_STORAGE_BUCKET?.trim() || "image";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL?.replace(/\/$/, "") || "";
 const SUPABASE_REST_URL = SUPABASE_URL ? `${SUPABASE_URL}/rest/v1` : "";
-const HAS_SUPABASE = Boolean(SUPABASE_REST_URL && SUPABASE_KEY);
+const SUPABASE_STORAGE_API_URL = SUPABASE_URL ? `${SUPABASE_URL}/storage/v1` : "";
+const HAS_SUPABASE = Boolean(SUPABASE_REST_URL && SUPABASE_KEY && SUPABASE_STORAGE_API_URL);
 
 type AdminSession = {
   username: string;
@@ -127,6 +129,129 @@ function textOrEmpty(value: unknown): string {
 
 function numberOrZero(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function buildStoragePublicUrl(bucket: string, objectPath: string): string {
+  const encodedPath = objectPath
+    .split("/")
+    .filter(Boolean)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/");
+
+  return `${SUPABASE_STORAGE_API_URL}/object/public/${encodeURIComponent(bucket)}/${encodedPath}`;
+}
+
+function normalizeStorageObjectPath(objectPath: string): string {
+  return objectPath
+    .split("/")
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+    .join("/");
+}
+
+function deriveSchoolStorageFolderName(schoolSlug?: string | null, schoolName?: string | null, schoolId?: number | null): string {
+  const candidates = [schoolSlug, schoolName].filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+  const patterns = [
+    /\b(?:sdn|sd)\s*[-_ ]?0?(\d{1,2})\b/i,
+    /\b(?:sdn|sd)(\d{1,2})\b/i,
+    /\b(\d{1,2})\b/,
+  ];
+
+  for (const candidate of candidates) {
+    for (const pattern of patterns) {
+      const match = candidate.match(pattern);
+      if (match?.[1]) {
+        return `SDN_${match[1].padStart(2, "0")}`;
+      }
+    }
+  }
+
+  const fallback = candidates[0] ?? `school-${schoolId ?? "unknown"}`;
+  return fallback
+    .trim()
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toUpperCase();
+}
+
+async function supabaseStorageList(bucket: string, prefix: string): Promise<Array<{ name: string }>> {
+  const url = `${SUPABASE_STORAGE_API_URL}/object/list/${encodeURIComponent(bucket)}?prefix=${encodeURIComponent(prefix)}&limit=1000`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Supabase storage list failed (${response.status})`);
+  }
+
+  const result = await response.json();
+  if (!Array.isArray(result)) {
+    return [];
+  }
+
+  return result.map((item) => ({ name: String(item.name ?? "") }));
+}
+
+async function listSupabaseStorageFilesForSchool(schoolId: number, schoolSlug: string, schoolName: string): Promise<StorageFileEntry[]> {
+  if (!HAS_SUPABASE) {
+    throw new Error("Supabase environment is not configured.");
+  }
+
+  const schoolFolder = deriveSchoolStorageFolderName(schoolSlug || undefined, schoolName || undefined, schoolId);
+  const folders = [
+    "school-hero",
+    "school-card",
+    "principal",
+    "staff",
+    "teachers",
+    "facilities",
+    "achievements",
+    "news",
+    "gallery",
+  ];
+  const files: StorageFileEntry[] = [];
+
+  for (const folder of folders) {
+    const prefix = `SchoolDetail/${schoolFolder}/${folder}/`;
+    let items: Array<{ name: string }> = [];
+
+    try {
+      items = await supabaseStorageList(SUPABASE_STORAGE_BUCKET, prefix);
+    } catch (error) {
+      console.warn(`Failed to list storage files for ${prefix}:`, error);
+      continue;
+    }
+
+    for (const item of items) {
+      const rawName = String(item.name || "").trim();
+      if (!rawName) {
+        continue;
+      }
+
+      let path = normalizeStorageObjectPath(rawName);
+      if (!path.startsWith(prefix)) {
+        path = normalizeStorageObjectPath(`${prefix}${path}`);
+      }
+
+      const fileName = path.split("/").pop() ?? "";
+      if (!fileName) {
+        continue;
+      }
+
+      files.push({
+        path,
+        name: fileName,
+        bucket: SUPABASE_STORAGE_BUCKET,
+        publicUrl: buildStoragePublicUrl(SUPABASE_STORAGE_BUCKET, path),
+      });
+    }
+  }
+
+  return files;
 }
 
 function formatDate(value?: string | null): string {
@@ -609,16 +734,6 @@ function toSchoolFromRow(
   return applyStoredImageFallbacks(school, storageFiles);
 }
 
-async function loadStorageFilesFromBackend(schoolId: number): Promise<StorageFileEntry[]> {
-  const response = await backendRequest(`/api/storage/files?schoolId=${encodeURIComponent(String(schoolId))}`, undefined, undefined, "GET");
-  const payload = (await response.json().catch(() => ({}))) as { success?: boolean; files?: StorageFileEntry[]; error?: string };
-
-  if (!response.ok || !payload.success || !Array.isArray(payload.files)) {
-    throw new Error(payload.error || "Gagal memuat file gambar dari storage.");
-  }
-
-  return payload.files;
-}
 
 function supabaseHeaders(token?: string): HeadersInit {
   return {
@@ -629,7 +744,7 @@ function supabaseHeaders(token?: string): HeadersInit {
   };
 }
 
-async function supabaseRequest(path: string, init?: RequestInit, token?: string): Promise<Response> {
+async function supabaseRequest(path: string, init?: RequestInit): Promise<Response> {
   if (!HAS_SUPABASE) {
     throw new Error("Supabase environment is not configured.");
   }
@@ -637,16 +752,16 @@ async function supabaseRequest(path: string, init?: RequestInit, token?: string)
   return fetch(`${SUPABASE_REST_URL}/${path}`, {
     ...init,
     headers: {
-      ...supabaseHeaders(token),
+      ...supabaseHeaders(),
       ...(init?.headers || {}),
     },
   });
 }
 
-async function supabaseSelect<T>(table: string, query = "*", token?: string): Promise<T[]> {
+async function supabaseSelect<T>(table: string, query = "*"): Promise<T[]> {
   const response = await supabaseRequest(`${table}?select=${encodeURIComponent(query)}`, {
     method: "GET",
-  }, token);
+  });
 
   if (!response.ok) {
     throw new Error(`Failed to load ${table}: ${response.status}`);
@@ -698,7 +813,7 @@ async function uploadImageToBackend(schoolId: number, folder: string, file: File
   return payload.publicUrl;
 }
 
-async function loadSchoolsFromSupabase(token?: string, schoolId?: number): Promise<SchoolFull[]> {
+async function loadSchoolsFromSupabase(): Promise<SchoolFull[]> {
   if (!HAS_SUPABASE) {
     throw new Error("Supabase environment is not configured.");
   }
@@ -730,7 +845,7 @@ async function loadSchoolsFromSupabase(token?: string, schoolId?: number): Promi
   const storageFilesBySchool = await Promise.all(
     schoolsRows.map(async (row) => {
       try {
-        const files = await loadStorageFilesFromBackend(row.id);
+        const files = await listSupabaseStorageFilesForSchool(row.id, textOrEmpty(row.slug), textOrEmpty(row.name));
         return [row.id, files] as const;
       } catch (error) {
         console.warn(`Failed to load storage files for school ${row.id}:`, error);
@@ -858,7 +973,7 @@ export function SchoolCmsProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        const remoteSchools = await loadSchoolsFromSupabase(adminSession?.token, adminSession?.schoolId);
+        const remoteSchools = await loadSchoolsFromSupabase();
         if (!active) return;
         setSchools(remoteSchools.map(cloneSchoolData));
       } catch (error) {
