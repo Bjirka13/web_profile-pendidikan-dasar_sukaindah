@@ -149,59 +149,183 @@ function HeroBanner({ school }: { school: SchoolFull }) {
 }
 
 function ProfileSummary({ school }: { school: SchoolFull }) {
-  return (
-    <Section className="bg-white">
-      <SectionHeader badge="Profil" title="Profil Singkat Sekolah" subtitle="Ringkasan dari tabel `schools`" />
-      <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <BookOpen className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-bold text-foreground text-lg" style={{ fontFamily: font }}>
-                {school.profileSummary || "Ringkasan belum tersedia"}
-              </h3>
-              <p className="text-xs text-muted-foreground mt-1" style={{ fontFamily: font }}>
-                {school.name || "Sekolah"}
-              </p>
-            </div>
-          </div>
-          <p className="text-sm leading-relaxed text-foreground/75" style={{ fontFamily: font }}>
-            {school.profileSummary || "Belum ada ringkasan profil pada tabel `schools`."}
-          </p>
-          {school.principal.name || school.principal.welcome ? (
-            <div className="mt-6 rounded-2xl bg-muted/40 p-4">
-              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Sambutan Kepala Sekolah</p>
-              <p className="mt-2 text-sm font-semibold text-foreground">{school.principal.name || "-"}</p>
-              {school.principal.welcome ? (
-                <p className="mt-2 text-sm text-foreground/75 whitespace-pre-line">{school.principal.welcome}</p>
-              ) : (
-                <p className="mt-2 text-sm text-muted-foreground">Data sambutan belum diisi pada tabel `school_principals`.</p>
-              )}
-            </div>
-          ) : null}
-        </div>
+  const highlights = [
+    { label: "Akreditasi", value: textOrDash(school.accreditation) },
+    { label: "Status", value: textOrDash(school.status) },
+    { label: "Tahun Berdiri", value: textOrDash(school.yearEstablished) },
+  ];
 
-        <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <h3 className="font-bold text-foreground text-lg" style={{ fontFamily: font }}>
-            Detail Profil
-          </h3>
-          <div className="mt-4 space-y-2">
-            {school.profileDetails.length > 0 ? (
-              school.profileDetails.map((item, index) => (
-                <div key={`${item}-${index}`} className="rounded-xl bg-muted/35 px-4 py-3 text-sm text-foreground/80">
-                  {item}
-                </div>
-              ))
-            ) : (
-              <div className="rounded-xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-                Belum ada detail profil tambahan.
+  return (
+    <Section className="bg-gradient-to-b from-white to-slate-50/70">
+      <SectionHeader badge="Sejarah" title="Sejarah Sekolah" subtitle="Latar belakang dan perjalanan sekolah dalam satu narasi yang jelas" />
+      <div className="rounded-[32px] border border-border/70 bg-card p-6 shadow-[0_20px_70px_-20px_rgba(15,23,42,0.18)] md:p-8">
+        <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+          <div className="flex-1">
+            <div className="flex items-start gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary shrink-0">
+                <School className="w-5 h-5" />
               </div>
-            )}
+              <div>
+                <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Latar belakang</p>
+                <h3 className="mt-1 font-bold text-foreground text-xl" style={{ fontFamily: font }}>
+                  {school.name || "Sekolah"}
+                </h3>
+              </div>
+            </div>
+
+            <p className="mt-6 text-sm leading-7 text-foreground/80" style={{ fontFamily: font }}>
+              {school.history || "Belum ada sejarah singkat sekolah yang diisi."}
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              {highlights.map((item) => (
+                <div key={item.label} className="rounded-2xl border border-border/70 bg-muted/40 px-4 py-3">
+                  <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">{item.label}</p>
+                  <p className="mt-1 font-semibold text-foreground" style={{ fontFamily: font }}>{item.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
+
         </div>
       </div>
+    </Section>
+  );
+}
+
+function PrincipalGreetingSection({ school }: { school: SchoolFull }) {
+  return (
+    <Section className="bg-muted/40">
+      <SectionHeader badge="Sambutan" title="Sambutan Kepala Sekolah" subtitle="Pesan dan informasi singkat dari pimpinan sekolah" />
+      <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+          <div className="flex flex-col sm:flex-row items-start gap-5">
+            {school.principal.photo ? (
+              <img src={school.principal.photo} alt={school.principal.name || "Kepala Sekolah"} className="h-24 w-24 rounded-2xl object-cover shadow-sm" />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary shadow-sm">
+                {initials(school.principal.name || "Kepala Sekolah")}
+              </div>
+            )}
+            <div>
+              <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Kepala Sekolah</p>
+              <h3 className="mt-2 text-xl font-bold text-foreground" style={{ fontFamily: font }}>
+                {school.principal.name || "Belum ada nama kepala sekolah"}
+              </h3>
+              <p className="mt-1 text-sm font-semibold text-primary">{school.principal.position || "Kepala Sekolah"}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{school.principal.nip ? `NIP. ${school.principal.nip}` : "NIP belum tersedia"}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+          <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Sambutan</p>
+          {school.principal.welcome ? (
+            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-foreground/80" style={{ fontFamily: font }}>
+              {school.principal.welcome}
+            </p>
+          ) : (
+            <p className="mt-4 text-sm text-muted-foreground">Belum ada sambutan kepala sekolah yang diisi.</p>
+          )}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+function VisionMissionGoalsSection({ school }: { school: SchoolFull }) {
+  const missionItems = (school.mission || []).filter((item) => item && item.trim().length > 0);
+
+  const cards = [
+    {
+      title: "Visi",
+      subtitle: "Tujuan jangka panjang sekolah",
+      icon: Eye,
+      accent: "bg-primary/10 text-primary",
+      body: school.vision || "Visi sekolah belum tersedia.",
+      highlight: true,
+    },
+    {
+      title: "Misi",
+      subtitle: "Langkah utama yang dijalankan sekolah",
+      icon: GraduationCap,
+      accent: "bg-amber-50 text-amber-600",
+      items: missionItems,
+      emptyText: "Belum ada data misi sekolah.",
+    },
+  ];
+
+  return (
+    <Section className="bg-gradient-to-b from-background via-white to-background">
+      <SectionHeader badge="Visi & Misi" title="Visi dan Misi Sekolah" subtitle="Arah dan komitmen sekolah dalam satu panduan yang mudah dibaca" />
+      <div className="grid gap-5 lg:grid-cols-2">
+        {cards.map(({ title, subtitle, icon: Icon, accent, body, items, emptyText, highlight }) => (
+          <div key={title} className="rounded-3xl border border-border bg-card p-6 shadow-sm transition-all duration-200">
+            <div className="flex items-center gap-3">
+              <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${accent}`}>
+                <Icon className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-foreground text-lg" style={{ fontFamily: font }}>{title}</h3>
+                <p className="text-sm text-muted-foreground">{subtitle}</p>
+              </div>
+            </div>
+
+            {body ? (
+              <div className={`mt-5 rounded-2xl p-5 ${highlight ? "bg-primary/5" : "bg-muted/40"}`}>
+                <p className="text-sm leading-relaxed text-foreground/80" style={{ fontFamily: font }}>{body}</p>
+              </div>
+            ) : null}
+
+            {items ? (
+              items.length > 0 ? (
+                <ul className="mt-5 space-y-2">
+                  {items.map((item, index) => (
+                    <li key={`${title}-${index}`} className="flex gap-2 rounded-xl bg-muted/40 px-3 py-2 text-sm text-foreground/80">
+                      <span className={`mt-1 h-2.5 w-2.5 rounded-full shrink-0 ${highlight ? "bg-primary" : "bg-accent"}`} />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-5 text-sm text-muted-foreground">{emptyText}</p>
+              )
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+function GoalsSection({ school }: { school: SchoolFull }) {
+  const goalItems = (school.goals || []).filter((item) => item && item.trim().length > 0);
+
+  return (
+    <Section className="bg-gradient-to-b from-slate-50 to-white">
+      <SectionHeader badge="Tujuan" title="Tujuan Sekolah" subtitle="Target dan arah pencapaian sekolah yang ditampilkan lengkap tanpa pembatasan" />
+      {goalItems.length > 0 ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {goalItems.map((item, index) => (
+            <div key={`${item}-${index}`} className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                  <Trophy className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Tujuan {index + 1}</p>
+                  <h3 className="font-semibold text-foreground" style={{ fontFamily: font }}>{school.name || "Sekolah"}</h3>
+                </div>
+              </div>
+              <p className="text-sm leading-7 text-foreground/80" style={{ fontFamily: font }}>{item}</p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-sm text-muted-foreground">
+          Belum ada data tujuan sekolah.
+        </div>
+      )}
     </Section>
   );
 }
@@ -239,6 +363,13 @@ function SchoolInfo({ school }: { school: SchoolFull }) {
 function OrgStructure({ school }: { school: SchoolFull }) {
   const vp = school.staff.filter((staff) => staff.isVicePrincipal);
   const admin = school.staff.filter((staff) => staff.isAdmin);
+  const sortedTeachers = [...school.teachers].sort((left, right) => {
+    const leftName = (left.name || "").trim().toLowerCase();
+    const rightName = (right.name || "").trim().toLowerCase();
+    return leftName.localeCompare(rightName);
+  });
+  const featuredTeacher = sortedTeachers[0];
+  const remainingTeachers = Math.max(sortedTeachers.length - 1, 0);
 
   function Card({ name, role, photo, highlight = false }: { name: string; role: string; photo?: string; highlight?: boolean }) {
     return (
@@ -264,7 +395,7 @@ function OrgStructure({ school }: { school: SchoolFull }) {
 
   return (
     <Section className="bg-background">
-      <SectionHeader badge="Struktur" title="Struktur Data Personel" subtitle="Data dari tabel `school_principals`, `school_staff`, dan `school_teachers`" />
+      <SectionHeader badge="Struktur" title="Struktur Organisasi" subtitle="Data dari tabel `school_principals`, `school_staff`, dan `school_teachers`" />
 
       <div className="flex justify-center">
         <div className="w-44">
@@ -291,11 +422,29 @@ function OrgStructure({ school }: { school: SchoolFull }) {
         </>
       ) : null}
 
-      {school.teachers.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {school.teachers.map((teacher) => (
-            <Card key={`${teacher.name}-${teacher.position}`} name={teacher.name} role={teacher.position} photo={teacher.photo} />
-          ))}
+      {sortedTeachers.length > 0 ? (
+        <div className="mt-6 rounded-[28px] border border-border bg-gradient-to-b from-muted/20 to-background p-5 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Guru</p>
+              <p className="text-sm font-semibold text-foreground">Semua guru tampil dalam struktur cabang sekolah</p>
+            </div>
+            <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary">
+              {sortedTeachers.length} Guru
+            </span>
+          </div>
+
+          <div className="relative mt-6 flex justify-center">
+            <div className="absolute left-1/2 top-0 hidden h-8 w-px -translate-x-1/2 bg-border md:block" />
+            <div className="flex flex-wrap justify-center gap-3 md:gap-4">
+              {sortedTeachers.map((teacher) => (
+                <div key={`${teacher.name}-${teacher.position}`} className="relative flex flex-col items-center">
+                  <div className="mb-2 h-6 w-px bg-border" />
+                  <Card name={teacher.name} role={teacher.position} photo={teacher.photo} />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
@@ -640,13 +789,19 @@ function SchoolDetailFallback({ school }: { school: SchoolFull }) {
       <Navbar />
       <HeroBanner school={school} />
       <ProfileSummary school={school} />
+      <PrincipalGreetingSection school={school} />
+      <VisionMissionGoalsSection school={school} />
+      <GoalsSection school={school} />
       <Footer />
     </div>
   );
 }
 
 const NAV_ITEMS = [
-  { id: "profile", label: "Profil", icon: BookOpen },
+  { id: "profile", label: "Sejarah", icon: BookOpen },
+  { id: "welcome", label: "Sambutan", icon: Eye },
+  { id: "vision", label: "Visi", icon: GraduationCap },
+  { id: "goals", label: "Tujuan", icon: Trophy },
   { id: "info", label: "Info", icon: School },
   { id: "org", label: "Struktur", icon: Users },
   { id: "facilities", label: "Fasilitas", icon: Building2 },
@@ -708,7 +863,10 @@ export default function SchoolDetail() {
       <HeroBanner school={school} />
       <QuickNav />
 
+      <div id="welcome"><PrincipalGreetingSection school={school} /></div>
       <div id="profile"><ProfileSummary school={school} /></div>
+      <div id="vision"><VisionMissionGoalsSection school={school} /></div>
+      <div id="goals"><GoalsSection school={school} /></div>
       <div id="info"><SchoolInfo school={school} /></div>
       <div id="org"><OrgStructure school={school} /></div>
       <div id="facilities"><Facilities school={school} /></div>

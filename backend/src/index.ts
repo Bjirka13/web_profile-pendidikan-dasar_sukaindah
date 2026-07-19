@@ -4,6 +4,7 @@ import { syncAllSchools, loadCatalog, getSchoolByNpsn } from "./scraper.js";
 import {
   authenticateAdminSession,
   deleteCmsSchoolRecord,
+  listCmsStorageFilesForSchool,
   syncCmsSchoolRecord,
   uploadCmsImage,
   validateAdminLogin,
@@ -13,6 +14,7 @@ import pino from "pino";
 const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 const app = express();
 const port = Number(process.env.PORT ?? 4000);
+const host = process.env.HOST ?? "0.0.0.0";
 
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
@@ -114,22 +116,24 @@ app.post("/api/admin/sync", async (req, res) => {
       ? req.body.deletedSchoolIds.filter((item: unknown) => typeof item === "number")
       : [];
 
-    const unauthorizedSchool = schools.some(
-      (school: { id?: unknown }) => typeof school?.id === "number" && school.id !== session.schoolId
-    );
+    const normalizedSchools = schools.map((school: Record<string, unknown>) => {
+      const { id: _ignoredId, ...rest } = school;
+      return rest;
+    });
+
     const unauthorizedDeletion = deletedSchoolIds.some((schoolId: number) => schoolId !== session.schoolId);
 
-    if (unauthorizedSchool || unauthorizedDeletion) {
+    if (unauthorizedDeletion) {
       res.status(403).json({ success: false, error: "Admin session is restricted to one school" });
       return;
     }
 
-    if (schools.length === 0 && deletedSchoolIds.length === 0) {
+    if (normalizedSchools.length === 0 && deletedSchoolIds.length === 0) {
       res.status(400).json({ success: false, error: "No schools provided" });
       return;
     }
 
-    for (const school of schools) {
+    for (const school of normalizedSchools) {
       await syncCmsSchoolRecord(school);
     }
 
@@ -140,7 +144,40 @@ app.post("/api/admin/sync", async (req, res) => {
     res.json({ success: true, count: schools.length, deletedCount: deletedSchoolIds.length });
   } catch (error) {
     logger.error({ err: error }, "Admin sync failed");
-    res.status(500).json({ success: false, error: "Unable to sync admin changes" });
+    const message = error instanceof Error ? error.message : "Unable to sync admin changes";
+    res.status(500).json({ success: false, error: message });
+  }
+});
+
+app.get("/api/storage/files", async (req, res) => {
+  try {
+    const schoolId = Number(req.query.schoolId ?? 0);
+    if (!Number.isFinite(schoolId) || schoolId <= 0) {
+      res.status(400).json({ success: false, error: "Invalid school id" });
+      return;
+    }
+
+    const files = await listCmsStorageFilesForSchool(schoolId);
+    res.json({ success: true, files });
+  } catch (error) {
+    logger.error({ err: error }, "Storage files listing failed");
+    res.status(500).json({ success: false, error: "Unable to list storage files" });
+  }
+});
+
+app.get("/api/admin/storage/files", async (req, res) => {
+  try {
+    const schoolId = Number(req.query.schoolId ?? 0);
+    if (!Number.isFinite(schoolId) || schoolId <= 0) {
+      res.status(400).json({ success: false, error: "Invalid school id" });
+      return;
+    }
+
+    const files = await listCmsStorageFilesForSchool(schoolId);
+    res.json({ success: true, files });
+  } catch (error) {
+    logger.error({ err: error }, "Storage files listing failed");
+    res.status(500).json({ success: false, error: "Unable to list storage files" });
   }
 });
 
@@ -155,9 +192,11 @@ app.post("/api/admin/upload-image", async (req, res) => {
     const mimeType = typeof req.body?.mimeType === "string" ? req.body.mimeType : "";
     const base64 = typeof req.body?.base64 === "string" ? req.body.base64 : "";
     const folder = typeof req.body?.folder === "string" ? req.body.folder : "";
+    const allowedFolders = ["school-hero", "school-card", "principal", "staff", "teachers", "facilities", "achievements", "news", "gallery"];
+    const normalizedFolder = folder.trim().toLowerCase() || "school-hero";
 
-    if (!folder.startsWith(`cms/schools/${session.schoolId}/`)) {
-      res.status(403).json({ success: false, error: "Upload folder does not match admin school" });
+    if (!allowedFolders.includes(normalizedFolder)) {
+      res.status(403).json({ success: false, error: "Upload folder is not allowed for this admin session" });
       return;
     }
 
@@ -170,7 +209,10 @@ app.post("/api/admin/upload-image", async (req, res) => {
       fileName,
       mimeType,
       base64,
-      folder,
+      folder: normalizedFolder,
+      schoolId: session.schoolId,
+      schoolSlug: session.schoolSlug,
+      schoolName: session.schoolName,
     });
 
     res.json({ success: true, ...result });
@@ -180,6 +222,6 @@ app.post("/api/admin/upload-image", async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  logger.info(`Backend scraping server running on http://localhost:${port}`);
+app.listen(port, host, () => {
+  logger.info(`Backend scraping server running on http://${host}:${port}`);
 });

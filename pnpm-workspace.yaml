@@ -4,9 +4,10 @@ packages:
 allowBuilds:
   '@tailwindcss/oxide': true
   esbuild: true
+  puppeteer: true
 supportedArchitectures:
   os:
-    - linux
+    - win32
   cpu:
     - x64
     - arm64

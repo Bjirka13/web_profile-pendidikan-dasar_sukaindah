@@ -200,6 +200,11 @@ function ImageUploadField({
 }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [inputValue, setInputValue] = useState("");
+
+  useEffect(() => {
+    setInputValue("");
+  }, [value]);
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -208,6 +213,7 @@ function ImageUploadField({
     try {
       setUploading(true);
       const publicUrl = await onUploadFile(file);
+      setInputValue("");
       onChange(publicUrl);
     } catch (error) {
       console.error(error);
@@ -216,6 +222,12 @@ function ImageUploadField({
       setUploading(false);
       event.target.value = "";
     }
+  };
+
+  const handleInputChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const next = event.target.value;
+    setInputValue(next);
+    onChange(next);
   };
 
   return (
@@ -229,9 +241,10 @@ function ImageUploadField({
       <div className="flex flex-col gap-3">
         <div className="flex gap-2">
           <Input
-            value={value}
-            onChange={(event) => onChange(event.target.value)}
-            placeholder="Tempel URL gambar atau upload file"
+            value={inputValue}
+            onChange={handleInputChange}
+            placeholder="Upload file atau tempel URL gambar"
+            className="font-mono text-xs"
           />
           <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} disabled={uploading}>
             {uploading ? "Mengunggah..." : "Upload"}
@@ -240,7 +253,9 @@ function ImageUploadField({
         </div>
         {value ? (
           <div className="overflow-hidden rounded-2xl border border-border bg-muted/30">
-            <img src={value} alt={label} className="h-40 w-full object-cover" loading="lazy" />
+            <div className="flex h-40 items-center justify-center bg-gradient-to-br from-primary/10 to-muted text-center text-xs font-medium text-muted-foreground">
+              <span>Preview gambar tersimpan</span>
+            </div>
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center text-xs text-muted-foreground">
@@ -264,7 +279,7 @@ function createEmptyStaff(): SchoolFull["staff"][number] {
   return {
     name: "",
     position: "",
-    photo: schoolImageAssets.blank,
+    photo: "",
     isAdmin: false,
     isVicePrincipal: false,
   };
@@ -275,7 +290,7 @@ function createEmptyTeacher(): SchoolFull["teachers"][number] {
     name: "",
     position: "",
     nip: "",
-    photo: schoolImageAssets.blank,
+    photo: "",
   };
 }
 
@@ -283,7 +298,7 @@ function createEmptyFacility(): SchoolFull["facilities"][number] {
   return {
     name: "",
     description: "",
-    photo: schoolImageAssets.blank,
+    photo: "",
     icon: "🏫",
     count: 1,
   };
@@ -295,7 +310,7 @@ function createEmptyAchievement(): SchoolFull["achievements"][number] {
     year: "",
     level: "",
     description: "",
-    photo: schoolImageAssets.blank,
+    photo: "",
   };
 }
 
@@ -305,14 +320,44 @@ function createEmptyNewsItem(): SchoolFull["news"][number] {
     title: "",
     date: "",
     excerpt: "",
-    thumbnail: schoolImageAssets.blank,
+    thumbnail: "",
     category: "Kegiatan",
   };
 }
 
+function normalizeDateInputValue(value?: string) {
+  if (!value) return "";
+
+  const trimmed = String(value).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
+
+  const parsed = new Date(trimmed);
+  if (!Number.isNaN(parsed.getTime())) {
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  const fallback = trimmed.replace(/\//g, "-");
+  const match = fallback.match(/^(\d{4})-(\d{2})-(\d{2})$/) ?? fallback.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+
+  if (match) {
+    const [, first, second, third] = match;
+    if (match[0].includes("-")) {
+      if (first.length === 4) {
+        return `${first}-${second}-${third}`;
+      }
+      return `${third}-${second}-${first}`;
+    }
+  }
+
+  return "";
+}
+
 function createEmptyGalleryItem(): SchoolFull["gallery"][number] {
   return {
-    photo: schoolImageAssets.blank,
+    photo: "",
     caption: "",
   };
 }
@@ -468,7 +513,8 @@ export default function Admin() {
       window.alert("Perubahan berhasil disimpan di proyek.");
     } catch (error) {
       console.error(error);
-      window.alert("Gagal menyimpan perubahan.");
+      const detail = error instanceof Error ? error.message : "Tidak ada detail error.";
+      window.alert(`Gagal menyimpan perubahan.\n${detail}`);
     } finally {
       setSaving(false);
     }
@@ -849,34 +895,6 @@ export default function Admin() {
                           </div>
                         </div>
 
-                        <div className="grid gap-4 lg:grid-cols-2">
-                          <div className="rounded-3xl border border-border bg-card p-5">
-                            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Pratinjau ringkasan publik</p>
-                            <p className="mt-3 text-lg font-bold text-foreground">
-                              {selectedSchool.profileSummary || "Belum ada ringkasan profil"}
-                            </p>
-                            <p className="mt-2 text-sm text-muted-foreground">
-                              Data ini tersimpan di kolom `schools.profile_summary` dan dipakai halaman publik.
-                            </p>
-                          </div>
-                          <div className="rounded-3xl border border-border bg-card p-5">
-                            <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Detail profil publik</p>
-                            <div className="mt-3 space-y-2">
-                              {selectedSchool.profileDetails.length > 0 ? (
-                                selectedSchool.profileDetails.slice(0, 6).map((detail, index) => (
-                                  <div key={`${detail}-${index}`} className="rounded-2xl bg-muted/40 px-3 py-2 text-sm text-foreground/80">
-                                    {detail}
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="rounded-2xl border border-dashed border-border px-4 py-6 text-sm text-muted-foreground">
-                                  Belum ada detail profil di `profile_details`.
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
                         <div className="grid gap-4">
                           <Field label="Sejarah Sekolah">
                             <Textarea value={selectedSchool.history} onChange={(event) => updateDraft({ history: event.target.value })} className="min-h-32" />
@@ -992,7 +1010,7 @@ export default function Admin() {
                           ) : (
                             <div className="space-y-3">
                               {selectedSchool.achievements.map((achievement, index) => (
-                                <ArrayCard key={`${achievement.title || "achievement"}-${index}`}>
+                                <ArrayCard key={`achievement-${index}`}>
                                   <div className="grid gap-3 md:grid-cols-2">
                                     <Field label="Judul" className="md:col-span-2">
                                       <Input
@@ -1096,9 +1114,10 @@ export default function Admin() {
                                         }
                                       />
                                     </Field>
-                                    <Field label="Tanggal">
+                                    <Field label="Tanggal" hint="YYYY-MM-DD">
                                       <Input
-                                        value={newsItem.date}
+                                        type="date"
+                                        value={normalizeDateInputValue(newsItem.date)}
                                         onChange={(event) =>
                                           replaceArrayItem("news", index, { ...newsItem, date: event.target.value })
                                         }
@@ -1160,7 +1179,7 @@ export default function Admin() {
                             ) : (
                               <div className="space-y-3">
                                 {selectedSchool.staff.map((person, index) => (
-                                  <ArrayCard key={`${person.name || "staff"}-${index}`}>
+                                  <ArrayCard key={`staff-${index}`}>
                                     <div className="grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
                                       <Field label="Nama">
                                         <Input
@@ -1228,7 +1247,7 @@ export default function Admin() {
                             ) : (
                               <div className="space-y-3">
                                 {selectedSchool.teachers.map((teacher, index) => (
-                                  <ArrayCard key={`${teacher.name || "teacher"}-${index}`}>
+                                  <ArrayCard key={`teacher-${index}`}>
                                     <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                                       <Field label="Nama">
                                         <Input
@@ -1288,7 +1307,7 @@ export default function Admin() {
                             ) : (
                               <div className="space-y-3">
                                 {selectedSchool.facilities.map((facility, index) => (
-                                  <ArrayCard key={`${facility.name || "facility"}-${index}`}>
+                                  <ArrayCard key={`facility-${index}`}>
                                     <div className="grid gap-3 md:grid-cols-2">
                                       <Field label="Nama">
                                         <Input

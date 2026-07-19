@@ -98,6 +98,13 @@ type UploadImageResponse = {
   error?: string;
 };
 
+type StorageFileEntry = {
+  path: string;
+  name: string;
+  bucket: string;
+  publicUrl: string;
+};
+
 type AdminLoginResponse = {
   success?: boolean;
   error?: string;
@@ -453,6 +460,87 @@ function toPrincipalRow(rows: RelatedRow[], fallback: SchoolFull["principal"]): 
   };
 }
 
+function gatherStorageFilesByFolder(files: StorageFileEntry[], schoolId: number): Map<string, StorageFileEntry[]> {
+  const grouped = new Map<string, StorageFileEntry[]>();
+  const prefix = `cms/schools/${schoolId}`.toLowerCase();
+
+  for (const file of files) {
+    const normalizedPath = file.path.toLowerCase();
+    const segments = normalizedPath.split("/").filter(Boolean);
+    let folder = "";
+
+    if (segments[0] === "schooldetail" && segments.length >= 3) {
+      folder = segments[2];
+    } else {
+      const relativePath = normalizedPath.startsWith(`${prefix}/`) ? normalizedPath.slice(prefix.length + 1) : normalizedPath;
+      folder = relativePath.split("/")[0] ?? "";
+    }
+
+    if (!folder) {
+      continue;
+    }
+
+    const existing = grouped.get(folder) ?? [];
+    existing.push(file);
+    grouped.set(folder, existing);
+  }
+
+  return grouped;
+}
+
+function applyStoredImageFallbacks(school: SchoolFull, storageFiles: StorageFileEntry[]): SchoolFull {
+  const grouped = gatherStorageFilesByFolder(storageFiles, school.id);
+
+  const pickImage = (folder: string, index = 0): string => {
+    const candidates = grouped.get(folder) ?? [];
+    return candidates[index]?.publicUrl ?? "";
+  };
+
+  const heroImage = school.heroImage || pickImage("school-hero");
+  const cardImage = school.cardImage || pickImage("school-card");
+  const principalPhoto = school.principal.photo || pickImage("principal");
+  const staff = school.staff.map((person, index) => ({
+    ...person,
+    photo: person.photo || pickImage("staff", index),
+  }));
+  const teachers = school.teachers.map((person, index) => ({
+    ...person,
+    photo: person.photo || pickImage("teachers", index),
+  }));
+  const facilities = school.facilities.map((facility, index) => ({
+    ...facility,
+    photo: facility.photo || pickImage("facilities", index),
+  }));
+  const achievements = school.achievements.map((achievement, index) => ({
+    ...achievement,
+    photo: achievement.photo || pickImage("achievements", index),
+  }));
+  const news = school.news.map((item, index) => ({
+    ...item,
+    thumbnail: item.thumbnail || pickImage("news", index),
+  }));
+  const gallery = school.gallery.map((item, index) => ({
+    ...item,
+    photo: item.photo || pickImage("gallery", index),
+  }));
+
+  return {
+    ...school,
+    heroImage,
+    cardImage,
+    principal: {
+      ...school.principal,
+      photo: principalPhoto,
+    },
+    staff,
+    teachers,
+    facilities,
+    achievements,
+    news,
+    gallery,
+  };
+}
+
 function toSchoolFromRow(
   row: SchoolTableRow,
   related: {
@@ -465,7 +553,8 @@ function toSchoolFromRow(
     gallery: RelatedRow[];
     syncStatus: RelatedRow[];
     roleStats: RelatedRow[];
-  }
+  },
+  storageFiles: StorageFileEntry[] = []
 ): SchoolFull {
   const base = createBlankSchool(row.id);
   const profileDetails = Array.isArray(row.profile_details)
@@ -476,7 +565,7 @@ function toSchoolFromRow(
   const roleStats = toSchoolRoleStats(related.roleStats);
   const studentGender = resolveStudentGender(row, roleStats);
 
-  return {
+  const school = {
     ...base,
     id: row.id,
     slug: textOrEmpty(row.slug),
@@ -516,6 +605,19 @@ function toSchoolFromRow(
     news: toSchoolNews(related.news),
     gallery: toSchoolGallery(related.gallery),
   };
+
+  return applyStoredImageFallbacks(school, storageFiles);
+}
+
+async function loadStorageFilesFromBackend(schoolId: number): Promise<StorageFileEntry[]> {
+  const response = await backendRequest(`/api/storage/files?schoolId=${encodeURIComponent(String(schoolId))}`, undefined, undefined, "GET");
+  const payload = (await response.json().catch(() => ({}))) as { success?: boolean; files?: StorageFileEntry[]; error?: string };
+
+  if (!response.ok || !payload.success || !Array.isArray(payload.files)) {
+    throw new Error(payload.error || "Gagal memuat file gambar dari storage.");
+  }
+
+  return payload.files;
 }
 
 function supabaseHeaders(token?: string): HeadersInit {
@@ -553,15 +655,17 @@ async function supabaseSelect<T>(table: string, query = "*", token?: string): Pr
   return (await response.json()) as T[];
 }
 
-async function backendRequest(path: string, body: unknown, token?: string): Promise<Response> {
+async function backendRequest(path: string, body: unknown, token?: string, method: "GET" | "POST" = "POST"): Promise<Response> {
   const url = BACKEND_URL ? `${BACKEND_URL}${path}` : path;
+  const headers: HeadersInit = {
+    ...(method === "POST" ? { "Content-Type": "application/json" } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
   return fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(body),
+    method,
+    headers,
+    ...(method === "POST" ? { body: JSON.stringify(body) } : {}),
   });
 }
 
@@ -581,7 +685,7 @@ async function uploadImageToBackend(schoolId: number, folder: string, file: File
     fileName: file.name,
     mimeType: file.type || "application/octet-stream",
     base64: await fileToBase64(file),
-    folder: `cms/schools/${schoolId}/${folder}`,
+    folder,
     },
     token
   );
@@ -594,7 +698,7 @@ async function uploadImageToBackend(schoolId: number, folder: string, file: File
   return payload.publicUrl;
 }
 
-async function loadSchoolsFromSupabase(): Promise<SchoolFull[]> {
+async function loadSchoolsFromSupabase(token?: string, schoolId?: number): Promise<SchoolFull[]> {
   if (!HAS_SUPABASE) {
     throw new Error("Supabase environment is not configured.");
   }
@@ -623,6 +727,20 @@ async function loadSchoolsFromSupabase(): Promise<SchoolFull[]> {
     supabaseSelect<RelatedRow>("school_role_stats"),
   ]);
 
+  const storageFilesBySchool = await Promise.all(
+    schoolsRows.map(async (row) => {
+      try {
+        const files = await loadStorageFilesFromBackend(row.id);
+        return [row.id, files] as const;
+      } catch (error) {
+        console.warn(`Failed to load storage files for school ${row.id}:`, error);
+        return [row.id, [] as StorageFileEntry[]] as const;
+      }
+    })
+  );
+
+  const storageFilesMap = new Map<number, StorageFileEntry[]>(storageFilesBySchool);
+
   return schoolsRows
     .slice()
     .sort((a, b) => a.id - b.id)
@@ -637,7 +755,7 @@ async function loadSchoolsFromSupabase(): Promise<SchoolFull[]> {
         gallery: galleryRows.filter((item) => item.school_id === row.id),
         syncStatus: syncRows.filter((item) => item.school_id === row.id),
         roleStats: roleStatRows.filter((item) => item.school_id === row.id),
-      })
+      }, storageFilesMap.get(row.id) ?? [])
     );
 }
 
@@ -698,8 +816,11 @@ async function syncAllSchoolsToSupabase(
   token?: string
 ): Promise<void> {
   const response = await backendRequest("/api/admin/sync", { schools, deletedSchoolIds }, token);
-  if (!response.ok) {
-    throw new Error(`Failed to sync admin changes: ${response.status}`);
+  const payload = (await response.json().catch(() => ({}))) as { success?: boolean; error?: string };
+
+  if (!response.ok || !payload.success) {
+    const detail = payload.error ? `: ${payload.error}` : ` (status ${response.status})`;
+    throw new Error(`Failed to sync admin changes${detail}`);
   }
 }
 
@@ -737,7 +858,7 @@ export function SchoolCmsProvider({ children }: { children: ReactNode }) {
 
     (async () => {
       try {
-        const remoteSchools = await loadSchoolsFromSupabase();
+        const remoteSchools = await loadSchoolsFromSupabase(adminSession?.token, adminSession?.schoolId);
         if (!active) return;
         setSchools(remoteSchools.map(cloneSchoolData));
       } catch (error) {
@@ -755,7 +876,7 @@ export function SchoolCmsProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [adminSession]);
 
   const value = useMemo<SchoolCmsContextValue>(() => {
     const canManageSchool = (schoolId: number) => {

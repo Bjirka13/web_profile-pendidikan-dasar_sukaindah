@@ -16,7 +16,7 @@ config();
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_KEY;
-const SUPABASE_STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "school-assets";
+const SUPABASE_STORAGE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || "image";
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
   throw new Error(
@@ -33,6 +33,16 @@ type CmsImageUploadPayload = {
   mimeType: string;
   base64: string;
   folder?: string;
+  schoolId?: number;
+  schoolSlug?: string | null;
+  schoolName?: string | null;
+};
+
+type StorageFileRecord = {
+  path: string;
+  name: string;
+  bucket: string;
+  publicUrl: string;
 };
 
 type AdminAccountRow = {
@@ -327,6 +337,9 @@ function normalizeAdminEmail(identifier: string): string {
 
 async function fetchAdminAccount(username: string): Promise<{ account: AdminAccountRow; school: SchoolRow } | null> {
   const normalizedUsername = normalizeAdminEmail(username);
+  console.log("[admin-login] looking up admin account", {
+    normalizedUsername,
+  });
 
   const { data, error } = await supabase
     .from("school_admins")
@@ -335,7 +348,7 @@ async function fetchAdminAccount(username: string): Promise<{ account: AdminAcco
     .maybeSingle();
 
   if (error) {
-    console.error("Supabase admin account lookup error:", error);
+    console.error("[admin-login] Supabase admin account lookup error:", error);
     // If the school_admins table doesn't exist in the schema cache, treat as no account
     // to avoid crashing the login flow in environments where the admin table is not created yet.
     if ((error as any)?.code === "PGRST205") {
@@ -345,9 +358,26 @@ async function fetchAdminAccount(username: string): Promise<{ account: AdminAcco
   }
 
   const account = data as AdminAccountRow | null;
-  if (!account?.school_id) {
+  if (!account) {
+    console.warn("[admin-login] no matching school_admins row found", {
+      normalizedUsername,
+    });
     return null;
   }
+
+  if (!account.school_id) {
+    console.warn("[admin-login] admin account found but school_id missing", {
+      normalizedUsername,
+      adminEmail: account.admin_email,
+    });
+    return null;
+  }
+
+  console.log("[admin-login] admin account found", {
+    normalizedUsername,
+    adminEmail: account.admin_email,
+    schoolId: account.school_id,
+  });
 
   const { data: school, error: schoolError } = await supabase
     .from("schools")
@@ -356,11 +386,15 @@ async function fetchAdminAccount(username: string): Promise<{ account: AdminAcco
     .maybeSingle();
 
   if (schoolError) {
-    console.error("Supabase school lookup error:", schoolError);
+    console.error("[admin-login] Supabase school lookup error:", schoolError);
     throw schoolError;
   }
 
   if (!school) {
+    console.warn("[admin-login] school row not found for admin account", {
+      normalizedUsername,
+      schoolId: account.school_id,
+    });
     return null;
   }
 
@@ -372,6 +406,11 @@ async function fetchAdminAccount(username: string): Promise<{ account: AdminAcco
 
 export async function validateAdminLogin(username: string, password: string): Promise<AdminSessionPayload | null> {
   const normalizedUsername = normalizeAdminEmail(username);
+  console.log("[admin-login] validating credentials", {
+    normalizedUsername,
+    passwordLength: password.length,
+  });
+
   const result = await fetchAdminAccount(normalizedUsername);
   if (!result) {
     return null;
@@ -381,7 +420,19 @@ export async function validateAdminLogin(username: string, password: string): Pr
 
   const enteredHash = hashAdminPassword(normalizedUsername, password);
   const storedHash = String(account.password_hash ?? "").trim();
-  if (!storedHash || storedHash !== enteredHash) {
+  if (!storedHash) {
+    console.warn("[admin-login] password_hash missing in school_admins row", {
+      normalizedUsername,
+    });
+    return null;
+  }
+
+  if (storedHash !== enteredHash) {
+    console.warn("[admin-login] password hash mismatch", {
+      normalizedUsername,
+      storedHashPrefix: storedHash.slice(0, 16),
+      enteredHashPrefix: enteredHash.slice(0, 16),
+    });
     return null;
   }
 
@@ -401,6 +452,13 @@ export async function validateAdminLogin(username: string, password: string): Pr
     jti: randomUUID(),
   });
 
+  console.log("[admin-login] credentials accepted", {
+    usernameNormalized,
+    schoolId,
+    schoolSlug,
+    schoolName,
+  });
+
   return {
     username: usernameNormalized,
     schoolId,
@@ -416,6 +474,40 @@ export function authenticateAdminSession(token: string): AdminSessionTokenPayloa
   return verifyAdminSessionToken(token);
 }
 
+function isRetryableSupabaseError(error: unknown): boolean {
+  if (!error) {
+    return false;
+  }
+
+  const message = error instanceof Error ? error.message : String(error);
+  const details = typeof error === "object" && error !== null && "details" in error
+    ? String((error as { details?: unknown }).details ?? "")
+    : "";
+
+  return [message, details].some((value) => /fetch failed|timeout|connecttimeout|connect timeout|und_err_connect_timeout|econnreset|socket hang up/i.test(value));
+}
+
+async function withSupabaseRetry<T>(operation: () => Promise<T>, context: string): Promise<T> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableSupabaseError(error) || attempt === 3) {
+        throw error;
+      }
+
+      const delayMs = attempt * 1000;
+      console.warn(`[supabase-retry] ${context} failed on attempt ${attempt}/3, retrying in ${delayMs}ms`, error);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw lastError;
+}
+
 async function replaceRowsBySchoolId(
   table: string,
   schoolId: number,
@@ -426,9 +518,21 @@ async function replaceRowsBySchoolId(
     return;
   }
 
+  const selectColumns = table === "school_facilities_ui"
+    ? "name,photo,count"
+    : table === "school_principals"
+      ? "name,position,photo,welcome,nip"
+      : table === "school_staff"
+        ? "name,position,nip,photo,is_admin,is_vice_principal"
+        : table === "school_teachers"
+          ? "name,position,nip,photo"
+          : table === "school_gallery"
+            ? "photo,caption"
+            : "name,photo";
+
   const { data: existingRows, error: selectError } = await supabase
     .from(table)
-    .select("name,description,photo,icon,count")
+    .select(selectColumns)
     .eq("school_id", schoolId);
 
   if (selectError) {
@@ -436,20 +540,74 @@ async function replaceRowsBySchoolId(
     throw selectError;
   }
 
-  const existingByName = new Map<string, SchoolFacilityUiRow>(
-    (existingRows as SchoolFacilityUiRow[] | null | undefined ?? []).map((row) => [row.name, row])
+  const existingRowsSafe = (existingRows as unknown[] | null | undefined ?? []) as Record<string, unknown>[];
+  const existingByKey = new Map<string, Record<string, unknown>>(
+    existingRowsSafe.map((row) => {
+      const key = table === "school_gallery"
+        ? String((row as Record<string, unknown>).photo ?? "")
+        : String((row as Record<string, unknown>).name ?? "");
+      return [key, row as Record<string, unknown>];
+    })
   );
+
   const mergedRows = rows.map((row) => {
-    const incoming = row as SchoolFacilityUiRow;
-    const existing = existingByName.get(String(incoming.name ?? ""));
+    const incoming = row as Record<string, unknown>;
+    const existing = existingByKey.get(String((incoming as Record<string, unknown>).name ?? ""));
+
+    if (table === "school_principals") {
+      return {
+        school_id: schoolId,
+        name: String(incoming.name ?? existing?.name ?? ""),
+        position: incoming.position ?? existing?.position ?? null,
+        photo: incoming.photo ?? existing?.photo ?? null,
+        welcome: incoming.welcome ?? existing?.welcome ?? null,
+        nip: incoming.nip ?? existing?.nip ?? null,
+      };
+    }
+
+    if (table === "school_staff") {
+      return {
+        school_id: schoolId,
+        name: String(incoming.name ?? existing?.name ?? ""),
+        position: incoming.position ?? existing?.position ?? null,
+        nip: incoming.nip ?? existing?.nip ?? null,
+        photo: incoming.photo ?? existing?.photo ?? null,
+        is_admin: incoming.is_admin ?? existing?.is_admin ?? false,
+        is_vice_principal: incoming.is_vice_principal ?? existing?.is_vice_principal ?? false,
+      };
+    }
+
+    if (table === "school_teachers") {
+      return {
+        school_id: schoolId,
+        name: String(incoming.name ?? existing?.name ?? ""),
+        position: incoming.position ?? existing?.position ?? null,
+        nip: incoming.nip ?? existing?.nip ?? null,
+        photo: incoming.photo ?? existing?.photo ?? null,
+      };
+    }
+
+    if (table === "school_facilities_ui") {
+      return {
+        school_id: schoolId,
+        name: String(incoming.name ?? existing?.name ?? ""),
+        photo: incoming.photo ?? existing?.photo ?? null,
+        count: incoming.count ?? existing?.count ?? null,
+      };
+    }
+
+    if (table === "school_gallery") {
+      return {
+        school_id: schoolId,
+        photo: incoming.photo ?? existing?.photo ?? null,
+        caption: incoming.caption ?? existing?.caption ?? null,
+      };
+    }
 
     return {
       school_id: schoolId,
       name: String(incoming.name ?? existing?.name ?? ""),
-      description: incoming.description ?? existing?.description ?? null,
       photo: incoming.photo ?? existing?.photo ?? null,
-      icon: incoming.icon ?? existing?.icon ?? null,
-      count: incoming.count ?? existing?.count ?? null,
     };
   });
 
@@ -535,7 +693,6 @@ async function syncRelatedSchoolData(schoolId: number, school: ScrapedSchoolData
 
 export async function syncCmsSchoolRecord(school: CmsSchoolPayload): Promise<void> {
   const baseRow = {
-    id: school.id,
     slug: school.slug,
     npsn: school.npsn,
     name: school.name,
@@ -567,18 +724,23 @@ export async function syncCmsSchoolRecord(school: CmsSchoolPayload): Promise<voi
     updated_at: new Date().toISOString(),
   };
 
-  const { error: schoolError } = await supabase
-    .from("schools")
-    .upsert(baseRow, { onConflict: "npsn" })
-    .select("id")
-    .single();
+  const { data: upsertedSchool, error: schoolError } = await withSupabaseRetry(async () => {
+    return supabase
+      .from("schools")
+      .upsert(baseRow, { onConflict: "npsn" })
+      .select("id")
+      .single();
+  }, "schools upsert");
 
   if (schoolError) {
     console.error("Supabase CMS school upsert error:", schoolError);
     throw schoolError;
   }
 
-  const schoolId = school.id;
+  const schoolId = Number(upsertedSchool?.id ?? 0);
+  if (!schoolId) {
+    throw new Error("Failed to resolve the Supabase school id after upsert");
+  }
 
   await Promise.all([
     replaceRowsBySchoolId("school_principals", schoolId, [{
@@ -608,9 +770,7 @@ export async function syncCmsSchoolRecord(school: CmsSchoolPayload): Promise<voi
     replaceRowsBySchoolId("school_facilities_ui", schoolId, school.facilities.map((facility) => ({
       school_id: schoolId,
       name: facility.name,
-      description: facility.description,
       photo: facility.photo,
-      icon: facility.icon,
       count: facility.count,
     }))),
     replaceRowsBySchoolIdSimple("school_achievements", schoolId, school.achievements.map((achievement) => ({
@@ -736,49 +896,168 @@ function sanitizeFileName(fileName: string): string {
   return safeExtension ? `${safeBase}.${safeExtension}` : safeBase;
 }
 
+function getFileExtension(fileName: string): string {
+  const lastDot = fileName.lastIndexOf(".");
+  if (lastDot <= 0 || lastDot === fileName.length - 1) {
+    return "";
+  }
+
+  return sanitizePathSegment(fileName.slice(lastDot + 1)).slice(0, 10);
+}
+
+function sanitizeStorageFolderName(value: string): string {
+  const cleaned = value.trim().replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  return cleaned || "school";
+}
+
+function deriveSchoolStorageFolderName(schoolSlug?: string | null, schoolName?: string | null, schoolId?: number | null): string {
+  const candidates = [schoolSlug, schoolName].filter((value): value is string => typeof value === "string" && value.trim().length > 0);
+  const patterns = [
+    /\b(?:sdn|sd)\s*[-_ ]?0?(\d{1,2})\b/i,
+    /\b(?:sdn|sd)(\d{1,2})\b/i,
+    /\b(\d{1,2})\b/,
+  ];
+
+  for (const candidate of candidates) {
+    for (const pattern of patterns) {
+      const match = candidate.match(pattern);
+      if (match?.[1]) {
+        return `SDN_${match[1].padStart(2, "0")}`;
+      }
+    }
+  }
+
+  const fallback = candidates[0] ?? `school-${schoolId ?? "unknown"}`;
+  return sanitizeStorageFolderName(fallback).toUpperCase();
+}
+
+async function resolveSchoolStorageFolderName(schoolId: number): Promise<string> {
+  const { data, error } = await withSupabaseRetry(async () =>
+    supabase.from("schools").select("slug,name").eq("id", schoolId).limit(1).maybeSingle(),
+    `school storage folder lookup ${schoolId}`
+  );
+
+  if (error) {
+    console.warn("Unable to resolve school storage folder from school table", { schoolId, error: error.message });
+    return `SCHOOL_${schoolId}`;
+  }
+
+  return deriveSchoolStorageFolderName((data as { slug?: string | null; name?: string | null } | null)?.slug, (data as { slug?: string | null; name?: string | null } | null)?.name, schoolId);
+}
+
+function normalizeUploadSectionFolder(folder?: string): string {
+  if (!folder) {
+    return "school-hero";
+  }
+
+  const segments = folder
+    .split("/")
+    .map(sanitizePathSegment)
+    .filter(Boolean);
+
+  const knownFolders = ["school-hero", "school-card", "principal", "staff", "teachers", "facilities", "achievements", "news", "gallery"];
+  for (let index = segments.length - 1; index >= 0; index -= 1) {
+    if (knownFolders.includes(segments[index])) {
+      return segments[index];
+    }
+  }
+
+  return segments[segments.length - 1] ?? "school-hero";
+}
+
+function resolveUploadFileName(payload: CmsImageUploadPayload, folder: string): string {
+  const normalizedFolder = folder.toLowerCase();
+  const extension = getFileExtension(payload.fileName);
+
+  if (normalizedFolder.includes("school-hero")) {
+    return extension ? `hero_img.${extension}` : "hero_img";
+  }
+
+  if (normalizedFolder.includes("school-card")) {
+    return extension ? `card_img.${extension}` : "card_img";
+  }
+
+  return sanitizeFileName(payload.fileName);
+}
+
 function decodeBase64(base64: string): Buffer {
   const payload = base64.includes(",") ? base64.split(",").pop() ?? "" : base64;
   return Buffer.from(payload, "base64");
 }
 
+export async function listCmsStorageFilesForSchool(schoolId: number): Promise<StorageFileRecord[]> {
+  const bucket = ensureBucketName();
+  const schoolFolder = await resolveSchoolStorageFolderName(schoolId);
+  const folders = ["school-hero", "school-card", "principal", "staff", "teachers", "facilities", "achievements", "news", "gallery"];
+  const files: StorageFileRecord[] = [];
+
+  for (const folder of folders) {
+    const folderPath = `SchoolDetail/${schoolFolder}/${folder}`;
+    const { data, error } = await withSupabaseRetry(async () => supabase.storage.from(bucket).list(folderPath, {
+      limit: 1000,
+      sortBy: { column: "name", order: "asc" },
+    }), `storage list ${folderPath}`);
+
+    if (error) {
+      continue;
+    }
+
+    const entries = Array.isArray(data) ? data : [];
+    for (const entry of entries) {
+      if (!entry || typeof entry.name !== "string") {
+        continue;
+      }
+
+      const objectPath = `${folderPath}/${entry.name}`;
+      const { data: publicUrlData } = supabase.storage.from(bucket).getPublicUrl(objectPath);
+      if (!publicUrlData?.publicUrl) {
+        continue;
+      }
+
+      files.push({
+        path: objectPath,
+        name: entry.name,
+        bucket,
+        publicUrl: publicUrlData.publicUrl,
+      });
+    }
+  }
+
+  return files;
+}
+
 function ensureBucketName() {
-  return SUPABASE_STORAGE_BUCKET.trim() || "school-assets";
+  return SUPABASE_STORAGE_BUCKET.trim() || "image";
 }
 
 export async function uploadCmsImage(payload: CmsImageUploadPayload): Promise<{ publicUrl: string; path: string; bucket: string }> {
-  const fileName = sanitizeFileName(payload.fileName);
   const bucket = ensureBucketName();
-  const folder = payload.folder
-    ? payload.folder
-        .split("/")
-        .map(sanitizePathSegment)
-        .filter(Boolean)
-        .join("/")
-    : "";
-  const uniquePrefix = randomUUID();
-  const path = [folder, `${uniquePrefix}-${fileName}`].filter(Boolean).join("/");
+  const schoolFolder = deriveSchoolStorageFolderName(payload.schoolSlug, payload.schoolName, payload.schoolId);
+  const folder = normalizeUploadSectionFolder(payload.folder);
+  const fileName = resolveUploadFileName(payload, folder);
+  const path = ["SchoolDetail", schoolFolder, folder, fileName].filter(Boolean).join("/");
   const fileBody = decodeBase64(payload.base64);
 
-  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+  const { data: buckets, error: listError } = await withSupabaseRetry(async () => supabase.storage.listBuckets(), "storage list buckets");
   if (listError) {
     throw listError;
   }
 
   const bucketExists = buckets.some((item) => item.name === bucket);
   if (!bucketExists) {
-    const { error: createError } = await supabase.storage.createBucket(bucket, {
+    const { error: createError } = await withSupabaseRetry(async () => supabase.storage.createBucket(bucket, {
       public: true,
-    });
+    }), "storage create bucket");
 
     if (createError) {
       throw createError;
     }
   }
 
-  const { error: uploadError } = await supabase.storage.from(bucket).upload(path, fileBody, {
+  const { error: uploadError } = await withSupabaseRetry(async () => supabase.storage.from(bucket).upload(path, fileBody, {
     contentType: payload.mimeType,
-    upsert: false,
-  });
+    upsert: true,
+  }), "storage upload");
 
   if (uploadError) {
     throw uploadError;
