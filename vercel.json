@@ -10,7 +10,7 @@
     },
     "backend": {
       "root": "backend/",
-      "buildCommand": "npm install --force && npm run build",
+      "buildCommand": "npm install --force --ignore-scripts && npm run build",
       "devCommand": "npm run dev",
       "entrypoint": "dist/server.js"
     }
