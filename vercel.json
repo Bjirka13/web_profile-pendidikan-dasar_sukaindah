@@ -4,13 +4,13 @@
     "frontend": {
       "root": ".",
       "framework": "vite",
-      "buildCommand": "node ./node_modules/vite/bin/vite.js build",
+      "buildCommand": "pnpm install --force && node ./node_modules/vite/bin/vite.js build",
       "devCommand": "node ./node_modules/vite/bin/vite.js --port 3000 --strictPort",
       "outputDirectory": "dist"
     },
     "backend": {
       "root": "backend/",
-      "buildCommand": "npm install && npm run build",
+      "buildCommand": "npm install --force && npm run build",
       "devCommand": "npm run dev",
       "entrypoint": "dist/server.js"
     }
