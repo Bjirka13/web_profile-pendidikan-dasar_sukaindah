@@ -39,7 +39,7 @@ async function ensureOutputFile() {
     await ensureDataDirectory();
     await ensureFileExists(OUTPUT_FILE, JSON.stringify({ updatedAt: new Date().toISOString(), schools: [] }, null, 2));
 }
-async function loadSchoolList() {
+export async function loadSchoolList() {
     await ensureSchoolListFile();
     const raw = await readFile(SCHOOL_LIST_FILE, "utf8");
     return JSON.parse(raw);

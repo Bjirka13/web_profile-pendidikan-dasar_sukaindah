@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /api/
+
+Sitemap: https://portal-pendidikan-dasar-sukaindah.vercel.app/sitemap.xml

@@ -1,4 +1,5 @@
 import type { SchoolCatalog, SchoolListEntry, ScrapeResult, ScrapedSchoolData } from "./types.js";
+export declare function loadSchoolList(): Promise<SchoolListEntry[]>;
 export declare function parseSchoolFromHtml(html: string, entry: SchoolListEntry): ScrapedSchoolData;
 export declare function scrapeSchool(entry: SchoolListEntry): Promise<ScrapeResult>;
 export declare function syncAllSchools(): Promise<SchoolCatalog>;

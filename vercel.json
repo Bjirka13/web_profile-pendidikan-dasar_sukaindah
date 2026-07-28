@@ -21,8 +21,32 @@
       "destination": { "service": "backend" }
     },
     {
+      "source": "/sitemap.xml",
+      "destination": { "service": "backend" }
+    },
+    {
       "source": "/(.*)",
       "destination": { "service": "frontend" }
+    }
+  ],
+  "headers": [
+    {
+      "source": "/admin",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/admin/:path*",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
     }
   ]
 }

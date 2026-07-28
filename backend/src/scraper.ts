@@ -48,7 +48,7 @@ async function ensureOutputFile(): Promise<void> {
   );
 }
 
-async function loadSchoolList(): Promise<SchoolListEntry[]> {
+export async function loadSchoolList(): Promise<SchoolListEntry[]> {
   await ensureSchoolListFile();
   const raw = await readFile(SCHOOL_LIST_FILE, "utf8");
   return JSON.parse(raw) as SchoolListEntry[];

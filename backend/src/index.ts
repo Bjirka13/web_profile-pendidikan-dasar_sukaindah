@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import { syncAllSchools, loadCatalog, getSchoolByNpsn } from "./scraper.js";
+import { syncAllSchools, loadCatalog, loadSchoolList, getSchoolByNpsn } from "./scraper.js";
 import {
   authenticateAdminSession,
   deleteCmsSchoolRecord,
@@ -13,9 +13,19 @@ import pino from "pino";
 
 const logger = pino({ level: process.env.LOG_LEVEL || "info" });
 const app: express.Application = express();
+const SITE_URL = (process.env.SITE_URL || "https://portal-pendidikan-dasar-sukaindah.vercel.app").replace(/\/$/, "");
 
 app.use(cors());
 app.use(express.json({ limit: "25mb" }));
+
+function escapeXml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
 
 function getBearerToken(req: express.Request): string {
   const header = req.header("authorization") || "";
@@ -43,6 +53,45 @@ function requireAdminSession(req: express.Request, res: express.Response) {
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", version: "1.0.0" });
+});
+
+app.get("/sitemap.xml", async (_req, res) => {
+  try {
+    const [catalog, schoolList] = await Promise.all([loadCatalog(), loadSchoolList()]);
+    const slugSet = new Set<string>();
+
+    for (const school of catalog.schools) {
+      const slug = typeof school.slug === "string" ? school.slug.trim() : "";
+      if (slug) slugSet.add(slug);
+    }
+
+    for (const entry of schoolList) {
+      const slug = typeof entry.slug === "string" ? entry.slug.trim() : "";
+      if (slug) slugSet.add(slug);
+    }
+
+    const staticUrls = [
+      `${SITE_URL}/`,
+      `${SITE_URL}/sekolah`,
+      `${SITE_URL}/statistik`,
+      `${SITE_URL}/know-about-us`,
+    ];
+
+    const schoolUrls = Array.from(slugSet)
+      .sort()
+      .map((slug) => `${SITE_URL}/sekolah/${encodeURIComponent(slug)}`);
+
+    const urls = [...staticUrls, ...schoolUrls]
+      .map((loc) => `  <url>\n    <loc>${escapeXml(loc)}</loc>\n  </url>`)
+      .join("\n");
+
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>`);
+  } catch (error) {
+    logger.error({ err: error }, "Failed to build sitemap");
+    res.status(500).type("text/plain").send("Unable to generate sitemap");
+  }
 });
 
 app.get("/api/schools", async (_req, res) => {
