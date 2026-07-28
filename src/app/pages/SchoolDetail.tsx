@@ -344,7 +344,7 @@ function SchoolInfo({ school }: { school: SchoolFull }) {
 
   return (
     <Section className="bg-primary">
-      <SectionHeader badge="Data Sekolah" title="Informasi Sekolah" subtitle="Data utama yang tersimpan di tabel `schools`" />
+      <SectionHeader badge="Data Sekolah" title="Informasi Sekolah" subtitle="Ringkasan data utama sekolah yang ditampilkan pada bagian ini" />
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {infoItems.map(({ icon: Icon, label, value, color }) => (
           <div key={label} className="bg-white rounded-2xl p-4 flex flex-col items-center text-center shadow-sm hover:shadow-md transition-shadow">
@@ -395,7 +395,7 @@ function OrgStructure({ school }: { school: SchoolFull }) {
 
   return (
     <Section className="bg-background">
-      <SectionHeader badge="Struktur" title="Struktur Organisasi" subtitle="Data dari tabel `school_principals`, `school_staff`, dan `school_teachers`" />
+      <SectionHeader badge="Struktur" title="Struktur Organisasi" subtitle="Susunan pimpinan, staf, dan guru yang membentuk struktur sekolah" />
 
       <div className="flex justify-center">
         <div className="w-44">
@@ -448,7 +448,7 @@ function OrgStructure({ school }: { school: SchoolFull }) {
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
-          Belum ada data guru di tabel `school_teachers`.
+          Belum ada data guru yang ditampilkan.
         </div>
       )}
     </Section>
@@ -458,7 +458,7 @@ function OrgStructure({ school }: { school: SchoolFull }) {
 function Facilities({ school }: { school: SchoolFull }) {
   return (
     <Section className="bg-muted/50">
-      <SectionHeader badge="Sarana & Prasarana" title="Fasilitas Sekolah" subtitle="Data dari tabel `school_facilities_ui`" />
+      <SectionHeader badge="Sarana & Prasarana" title="Fasilitas Sekolah" subtitle="Daftar sarana dan prasarana yang tersedia di sekolah" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {school.facilities.length > 0 ? school.facilities.map((facility) => (
           <div key={facility.name} className="bg-card rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-1 group">
@@ -487,7 +487,7 @@ function Facilities({ school }: { school: SchoolFull }) {
           </div>
         )) : (
           <div className="col-span-full rounded-2xl border border-dashed border-border bg-card px-6 py-10 text-center text-sm text-muted-foreground">
-            Belum ada data fasilitas di tabel `school_facilities_ui`.
+            Belum ada data fasilitas yang ditampilkan.
           </div>
         )}
       </div>
@@ -510,7 +510,7 @@ function RoleStatsSection({ school }: { school: SchoolFull }) {
 
   return (
     <Section className="bg-background">
-      <SectionHeader badge="Kesiswaan" title="Statistik Pendidikan" subtitle="Data agregat dari tabel `schools` dan `school_role_stats`" />
+      <SectionHeader badge="Kesiswaan" title="Statistik Pendidikan" subtitle="Ringkasan data kesiswaan dan komposisi warga sekolah" />
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
         {[
           { label: "Total Siswa", value: school.totalStudents, icon: Users, color: "text-green-600" },
@@ -532,7 +532,7 @@ function RoleStatsSection({ school }: { school: SchoolFull }) {
         <div className="bg-card rounded-2xl p-6 shadow-sm border border-border">
           <div className="mb-5">
             <h4 className="font-bold text-foreground" style={{ fontFamily: font }}>Komposisi Peran Warga Sekolah</h4>
-            <p className="text-xs text-muted-foreground mt-1">Data dari tabel `school_role_stats`</p>
+            <p className="text-xs text-muted-foreground mt-1">Grafik komposisi peran warga sekolah</p>
           </div>
           {roleData.length > 0 ? (
             <ResponsiveContainer width="100%" height={240}>
@@ -641,7 +641,7 @@ function ContactLocation({ school }: { school: SchoolFull }) {
             />
           ) : (
             <div className="flex min-h-[300px] items-center justify-center p-6 text-center text-sm text-muted-foreground">
-              Koordinat peta belum tersedia di tabel `schools`.
+              Koordinat peta sekolah belum tersedia.
             </div>
           )}
         </div>
@@ -654,7 +654,7 @@ function GallerySection({ school }: { school: SchoolFull }) {
   const [lightbox, setLightbox] = useState<string | null>(null);
 
   if (school.gallery.length === 0) {
-    return <EmptyFeedSection badge="Galeri" title="Galeri Foto" subtitle="Dokumentasi kegiatan sekolah" icon={Image} emptyText="Belum ada data galeri di tabel `school_gallery`." />;
+    return <EmptyFeedSection badge="Galeri" title="Galeri Foto" subtitle="Dokumentasi kegiatan sekolah" icon={Image} emptyText="Belum ada data galeri yang ditampilkan." />;
   }
 
   return (
@@ -702,7 +702,7 @@ function GallerySection({ school }: { school: SchoolFull }) {
 
 function NewsSection({ school }: { school: SchoolFull }) {
   if (school.news.length === 0) {
-    return <EmptyFeedSection badge="Berita" title="Berita Terkini" subtitle="Informasi dan kegiatan sekolah" icon={Newspaper} emptyText="Belum ada data berita di tabel `school_news`." />;
+    return <EmptyFeedSection badge="Berita" title="Berita Terkini" subtitle="Informasi dan kegiatan sekolah" icon={Newspaper} emptyText="Belum ada data berita yang ditampilkan." />;
   }
 
   const categoryColors: Record<string, string> = {
@@ -746,7 +746,7 @@ function NewsSection({ school }: { school: SchoolFull }) {
 
 function AchievementsSection({ school }: { school: SchoolFull }) {
   if (school.achievements.length === 0) {
-    return <EmptyFeedSection badge="Prestasi" title="Prestasi Sekolah" subtitle="Capaian dan penghargaan" icon={Trophy} emptyText="Belum ada data prestasi di tabel `school_achievements`." />;
+    return <EmptyFeedSection badge="Prestasi" title="Prestasi Sekolah" subtitle="Capaian dan penghargaan" icon={Trophy} emptyText="Belum ada data prestasi yang ditampilkan." />;
   }
 
   return (
