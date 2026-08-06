@@ -1,133 +1,119 @@
-# Supabase Database Design for School Portal
+# Supabase Database Design
 
-## Tujuan
-Menyusun skema database Supabase yang dapat menampung:
-- data sekolah dasar yang digunakan frontend UI,
-- output scraper DAPO yang memuat data aktual sekolah,
-- pemisahan antara konten UI yang masih hardcoded dan data DAPO yang ter-scrape.
+Dokumen ini menjelaskan skema Supabase yang dipakai oleh aplikasi saat ini.
+Fokusnya adalah pemisahan data inti sekolah, data sinkronisasi, konten CMS, dan media.
+
+## Tujuan desain
+
+1. Menyimpan data sekolah yang dipakai frontend publik.
+2. Menyimpan data hasil scraping DAPO.
+3. Menyimpan konten CMS sekolah yang bisa diedit operator.
+4. Menyimpan file media di Supabase Storage dengan jalur yang konsisten.
 
 ## Prinsip desain
-1. `schools` adalah tabel utama berisi informasi identitas dan metadata sekolah.
-2. Data DAPO yang bersifat structured dan dapat berubah disimpan dalam tabel relasional atau JSONB.
-3. Konten UI kaya (history, vision, mission, goals, gallery, news, staff, teachers) dapat disimpan terpisah sebagai `schools_ui` jika ingin migrasi ke database.
-4. Setiap record sekolah punya satu status sinkronisasi (`school_sync_status`) dan satu source DAPO.
 
----
+1. `schools` adalah tabel utama.
+2. `school_sync_status` menyimpan histori sinkronisasi.
+3. Tabel relasional dipakai untuk konten yang berubah lebih sering daripada identitas sekolah.
+4. Konten UI sebaiknya dipisah dari data inti agar frontend tetap stabil.
 
-## Tabel utama: `schools`
+## Tabel inti
 
-Kolom inti:
-- `id` bigint primary key
-- `slug` text unique not null
-- `npsn` text unique not null
-- `name` text not null
-- `short_name` text
-- `tagline` text
-- `status` text
-- `accreditation` text
-- `year_established` text
-- `address` text
-- `kode_pos` text
-- `kecamatan` text
-- `desa` text
-- `contact` text
-- `email` text
-- `hero_image` text
-- `card_image` text
-- `maps_embed` text
-- `sync_status` text
-- `profile_summary` text
-- `profile_details` text[]
-- `facilities` jsonb
-- `grade_stats` jsonb
-- `total_students` int
-- `male_students` int
-- `female_students` int
-- `total_teachers` int
-- `total_classrooms` int
-- `total_study_groups` int
-- `updated_at` timestamptz default now()
-- `created_at` timestamptz default now()
+### `schools`
 
-### Catatan
-- `profile_details` bisa berupa array teks karena output scraper saat ini merender baris profil sekolah.
-- `facilities` dan `grade_stats` menggunakan `jsonb` agar fleksibel untuk variasi label dan tipe data.
+Kolom penting:
 
----
-
-## Tabel tambahan: `school_sync_status`
-
-Kolom:
-- `id` bigint primary key
-- `school_id` bigint references `schools(id)` on delete cascade
-- `status` text not null check (status in ('success','warning','failed'))
-- `message` text
-- `scraped_at` timestamptz not null
-- `source_url` text
-- `created_at` timestamptz default now()
+- `id`
+- `slug`
+- `npsn`
+- `name`
+- `short_name`
+- `tagline`
+- `status`
+- `accreditation`
+- `year_established`
+- `address`
+- `kode_pos`
+- `kecamatan`
+- `desa`
+- `contact`
+- `email`
+- `hero_image`
+- `card_image`
+- `maps_embed`
+- `sync_status`
+- `profile_summary`
+- `profile_details`
+- `facilities`
+- `grade_stats`
+- `total_students`
+- `male_students`
+- `female_students`
+- `total_teachers`
+- `total_classrooms`
+- `total_study_groups`
+- `created_at`
+- `updated_at`
 
 ### Fungsi
-Menjaga historis hasil scraper dan status sinkronisasi, termasuk sumber DAPO.
 
----
+- Menjadi sumber utama data sekolah di frontend.
+- Dipakai backend untuk sinkronisasi dan sitemap.
+- Menyimpan metadata yang tidak perlu dipecah ke tabel terpisah.
 
-## Tabel opsional untuk migrasi UI-rich content
+## Tabel sinkronisasi
 
-Jika ingin menyimpan konten frontend yang sekarang masih hardcoded, gunakan tabel terpisah:
+### `school_sync_status`
 
-### `school_principals`
+Kolom penting:
+
 - `id`
 - `school_id`
+- `status`
+- `message`
+- `scraped_at`
+- `source_url`
+- `created_at`
+
+### Fungsi
+
+- Menyimpan histori hasil scrape.
+- Menjelaskan kapan data terakhir disinkronkan.
+- Membantu audit kalau ada data yang gagal diambil.
+
+## Tabel role statistik
+
+### `school_role_stats`
+
+Kolom penting:
+
+- `id`
+- `school_id`
+- `role`
+- `total`
+- `male`
+- `female`
+- `scraped_at`
+- `created_at`
+- `updated_at`
+
+### Fungsi
+
+- Menyimpan statistik guru, tenaga didik, dan peserta didik.
+- Dipakai frontend untuk ringkasan statistik dan grafik.
+
+## Tabel konten CMS
+
+### `school_principals`
+
 - `name`
 - `position`
 - `photo`
-- `welcome` text
+- `welcome`
 - `nip`
 
-### `school_ui_contents`
-- `id`
-- `school_id`
-- `history` text
-- `vision` text
-- `mission` text[]
-- `goals` text[]
+### `school_staff`
 
-### `school_facilities_ui`
-- `id`
-- `school_id`
-- `name`
-- `description`
-- `photo`
-- `icon`
-- `count`
-
-### `school_achievements`
-- `id`
-- `school_id`
-- `title`
-- `year`
-- `level`
-- `description`
-- `photo`
-
-### `school_news`
-- `id`
-- `school_id`
-- `title`
-- `date`
-- `excerpt`
-- `thumbnail`
-- `category`
-
-### `school_gallery`
-- `id`
-- `school_id`
-- `photo`
-- `caption`
-
-### `school_staff` dan `school_teachers`
-- `id`
-- `school_id`
 - `name`
 - `position`
 - `nip`
@@ -135,107 +121,140 @@ Jika ingin menyimpan konten frontend yang sekarang masih hardcoded, gunakan tabe
 - `is_admin`
 - `is_vice_principal`
 
----
+### `school_teachers`
 
-## Rekomendasi implementasi Supabase
+- `name`
+- `position`
+- `nip`
+- `photo`
 
-1. Pakai `schools` sebagai sumber kebenaran utama untuk data yang dipakai di UI.
-2. Jika scraper DAPO berhasil, update kolom `schools` dan `school_sync_status`.
-3. Untuk konten UI hardcoded saat ini, simpan di tabel `school_ui_contents` dan tetap gunakan di frontend sampai migrasi selesai.
-4. Pastikan `slug` adalah field unik agar routing frontend tetap stabil.
-5. Gunakan Supabase Row Level Security jika butuh akses terpisah untuk admin dan publik.
+### `school_facilities_ui`
 
----
+- `name`
+- `description`
+- `photo`
+- `icon`
+- `count`
 
-## Contoh SQL schema
+### `school_achievements`
 
-```sql
-create table schools (
-  id bigint generated by default as identity primary key,
-  slug text not null unique,
-  npsn text not null unique,
-  name text not null,
-  short_name text,
-  tagline text,
-  status text,
-  accreditation text,
-  year_established text,
-  address text,
-  kode_pos text,
-  kecamatan text,
-  desa text,
-  contact text,
-  email text,
-  hero_image text,
-  card_image text,
-  maps_embed text,
-  sync_status text,
-  profile_summary text,
-  profile_details text[],
-  facilities jsonb,
-  grade_stats jsonb,
-  total_students int,
-  male_students int,
-  female_students int,
-  total_teachers int,
-  total_classrooms int,
-  total_study_groups int,
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
-);
+- `title`
+- `year`
+- `level`
+- `description`
+- `photo`
 
-create table school_sync_status (
-  id bigint generated by default as identity primary key,
-  school_id bigint references schools(id) on delete cascade,
-  status text not null check (status in ('success','warning','failed')),
-  message text,
-  scraped_at timestamptz not null,
-  source_url text,
-  created_at timestamptz default now()
-);
-```
+### `school_news`
 
----
+- `id`
+- `title`
+- `date`
+- `excerpt`
+- `thumbnail`
+- `category`
 
-## Field mapping ke UI
+### `school_gallery`
 
-| UI / scraper field | Supabase column | Keterangan |
-| --- | --- | --- |
-| `npsn` | `schools.npsn` | kunci sekolah
-| `name` | `schools.name` | nama lengkap sekolah
-| `tagline` | `schools.tagline` | text small yang ditampilkan di hero
-| `status` | `schools.status` | Negeri / Swasta
-| `accreditation` | `schools.accreditation` | huruf akreditasi
-| `yearEstablished` | `schools.year_established` | tahun berdiri
-| `address` | `schools.address` | alamat lengkap
-| `kodePos` | `schools.kode_pos` | kode pos
-| `kecamatan` | `schools.kecamatan` | kecamatan
-| `desa` | `schools.desa` | desa/kelurahan
-| `contact` | `schools.contact` | nomor telepon
-| `email` | `schools.email` | email sekolah
-| `syncStatus` | `schools.sync_status` | metadata DAPO
-| `profileDetails` | `schools.profile_details` | array teks DAPO
-| `facilities` | `schools.facilities` | JSONB count tiap fasilitas
-| `gradeStats` | `schools.grade_stats` | JSONB data rombel/kelas
-| `totalStudents` | `schools.total_students` | jumlah siswa
-| `totalTeachers` | `schools.total_teachers` | jumlah guru
-| `heroImage`, `cardImage` | `schools.hero_image`, `schools.card_image` | gambar UI
-| `mapsEmbed` | `schools.maps_embed` | embed Google Maps
+- `photo`
+- `caption`
 
----
+### Fungsi
 
-## Kapan simpan di database?
+- Menyimpan konten yang bisa diedit dari halaman admin.
+- Tetap terpisah dari data hasil scraping supaya perubahan konten tidak merusak data inti.
 
-- `schools` untuk data yang memang ingin disajikan secara dinamis.
-- `school_sync_status` untuk melacak hasil scraping dan sumber data.
-- `school_ui_contents` jika ingin membuat frontend sepenuhnya driven by DB.
+## Tabel akses admin
 
----
+### `school_admins`
 
-## Saran migrasi
+Kolom yang dipakai backend:
 
-1. Buat tabel di Supabase sesuai schema di atas.
-2. Isi `schools` dengan data frontend awal untuk 4 sekolah.
-3. Isi `school_sync_status` setiap kali scraping berhasil.
-4. Ketika data sudah stabil, update frontend agar mengambil data dari Supabase.
-5. Setelah frontend memakai Supabase, hapus hardcoded data atau gunakan fallback.
+- `admin_email`
+- `password_hash`
+- `school_id`
+
+### Fungsi
+
+- Memetakan akun admin ke satu sekolah.
+- Dipakai untuk login dan pembatasan akses.
+- Menjaga agar satu akun hanya bisa mengelola sekolah yang ditugaskan.
+
+## Storage
+
+Backend dan frontend memakai Supabase Storage untuk media sekolah.
+
+### Jalur umum
+
+- `SchoolDetail/<school-folder>/school-hero`
+- `SchoolDetail/<school-folder>/school-card`
+- `SchoolDetail/<school-folder>/principal`
+- `SchoolDetail/<school-folder>/staff`
+- `SchoolDetail/<school-folder>/teachers`
+- `SchoolDetail/<school-folder>/facilities`
+- `SchoolDetail/<school-folder>/achievements`
+- `SchoolDetail/<school-folder>/news`
+- `SchoolDetail/<school-folder>/gallery`
+
+### Fungsi
+
+- Menyimpan gambar yang dipakai oleh halaman detail sekolah.
+- Dibaca backend saat listing file.
+- Diupload lewat backend agar session admin tetap tervalidasi.
+
+## Hubungan dengan backend
+
+### Backend menulis ke
+
+- `schools`
+- `school_sync_status`
+- `school_role_stats`
+- `school_principals`
+- `school_staff`
+- `school_teachers`
+- `school_facilities_ui`
+- `school_achievements`
+- `school_news`
+- `school_gallery`
+- `school_admins` untuk login
+
+### Backend membaca dari
+
+- `schools`
+- `school_sync_status`
+- `school_role_stats`
+- tabel konten relasional
+- storage bucket
+
+## Hubungan dengan frontend
+
+- Frontend publik membaca data sekolah dari Supabase.
+- Frontend admin mengirim perubahan ke backend, bukan langsung ke semua tabel.
+- Upload gambar diproses backend supaya folder storage konsisten.
+
+## Field mapping penting
+
+| Field aplikasi | Supabase |
+| --- | --- |
+| `school.slug` | `schools.slug` |
+| `school.npsn` | `schools.npsn` |
+| `school.name` | `schools.name` |
+| `school.address` | `schools.address` |
+| `school.syncStatus` | `schools.sync_status` atau `school_sync_status.message` |
+| `school.profileDetails` | `schools.profile_details` |
+| `school.facilities` | `schools.facilities` atau `school_facilities_ui` |
+| `school.roleStats` | `school_role_stats` |
+| `school.principal` | `school_principals` |
+| `school.staff` | `school_staff` |
+| `school.teachers` | `school_teachers` |
+| `school.achievements` | `school_achievements` |
+| `school.news` | `school_news` |
+| `school.gallery` | `school_gallery` |
+
+## Saran implementasi
+
+1. Jadikan `schools` sebagai sumber kebenaran utama.
+2. Simpan histori sinkronisasi di `school_sync_status`.
+3. Simpan statistik per peran di `school_role_stats`.
+4. Pisahkan konten yang diedit operator dari data inti sekolah.
+5. Gunakan RLS untuk membatasi akses publik dan admin.
+

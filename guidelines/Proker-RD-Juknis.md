@@ -1,172 +1,128 @@
 # Program Kerja, Rancangan Detail, dan Juknis
-# Pembangunan Web Portal Informasi Sekolah Dasar Berbasis Data DAPO
+# Portal Informasi Sekolah Dasar Berbasis Data DAPO
 
-## 1. Program Kerja (Proker)
+## 1. Program Kerja
 
-### Nama Program
-Pembangunan Web Portal Informasi Sekolah Dasar Berbasis Data DAPO untuk Mendukung Digitalisasi Informasi Pendidikan
+### Nama program
+Pembangunan portal informasi sekolah dasar berbasis data DAPO untuk mendukung digitalisasi informasi pendidikan.
 
-### Latar Belakang
-Seiring berkembangnya kebutuhan masyarakat akan informasi pendidikan yang cepat, akurat, dan mudah diakses, diperlukan media digital yang mampu menampilkan profil sekolah secara terstruktur. Proyek ini bertujuan untuk menghadirkan portal web yang memuat informasi sekolah dasar, mulai dari profil sekolah, fasilitas, data statistik, hingga integrasi data dari DAPO.
+### Tujuan
 
-### Tujuan Program
-1. Menyediakan portal informasi sekolah yang informatif dan mudah diakses.
-2. Mengintegrasikan data sekolah dari sumber DAPO sehingga informasi lebih relevan.
-3. Menampilkan detail sekolah secara menarik dan profesional.
-4. Menjadi bentuk kontribusi nyata dalam pengembangan digitalisasi pendidikan.
+1. Menyediakan portal informasi sekolah yang rapi dan mudah diakses.
+2. Menggunakan data DAPO sebagai sumber sinkronisasi data sekolah.
+3. Menyediakan halaman detail sekolah yang cukup lengkap untuk publik.
+4. Memberi jalur update konten yang jelas untuk operator dan pengelola desa.
 
-### Sasaran Program
-- Masyarakat umum yang ingin mengetahui informasi sekolah.
-- Orang tua siswa yang membutuhkan data sekolah secara cepat.
-- Instansi atau pihak terkait yang membutuhkan referensi profil sekolah.
-- Tim pelaksana program dalam pengembangan web berbasis data.
+### Sasaran
 
-### Manfaat Program
-- Mempermudah akses informasi sekolah.
-- Meningkatkan visibilitas sekolah secara digital.
-- Menjadi contoh implementasi teknologi informasi untuk pendidikan.
-- Mendukung keterbukaan informasi dan pelayanan publik.
+- Masyarakat umum yang ingin melihat profil sekolah.
+- Orang tua siswa yang membutuhkan informasi cepat.
+- Operator sekolah atau pengelola konten yang mengubah data sekolah.
+- Sekretaris desa yang perlu memahami perubahan mana yang aman dilakukan lebih dulu.
 
-### Output Program
-- Website portal sekolah yang dapat diakses secara daring.
-- Halaman daftar sekolah dan halaman detail sekolah.
-- Data sekolah yang terintegrasi dengan hasil scraping DAPO.
-- Dokumen pendukung berupa rancangan detail kegiatan dan juknis pelaksanaan.
+### Output
 
----
+- Portal web sekolah yang bisa diakses online.
+- Halaman daftar sekolah.
+- Halaman detail sekolah.
+- Backend scraper dan API untuk sinkronisasi data.
+- Dokumentasi kerja dan pedoman implementasi.
 
-## 2. Rancangan Detail (RD)
+## 2. Rancangan Detail
 
-### Judul Kegiatan
-Pembangunan Website Informasi Sekolah Dasar dengan Integrasi Data DAPO
+### Bentuk sistem saat ini
 
-### Bentuk Kegiatan
-Kegiatan pengembangan aplikasi web statis/interactive yang memuat informasi sekolah dasar, disertai integrasi data dari sumber DAPO melalui proses scraping.
+- Frontend: React + Vite.
+- Backend: Node.js + Express + TypeScript.
+- Database: Supabase.
+- Artikel berita beranda: WordPress.
 
-### Ruang Lingkup Kegiatan
-1. Perancangan UI/UX halaman utama dan halaman detail sekolah.
-2. Penyusunan data sekolah dan konten informasi.
-3. Pengembangan frontend menggunakan React + Vite.
-4. Pengembangan backend scraper dengan Node.js dan TypeScript.
-5. Integrasi data DAPO dan penyusunan output data sekolah.
-6. Pengujian dan validasi hasil aplikasi.
+### Pembagian peran komponen
 
-### Tahapan Pelaksanaan
-1. Persiapan
-   - Menentukan kebutuhan fitur.
-   - Menyusun struktur data sekolah.
-   - Menentukan target sekolah yang akan ditampilkan.
+1. Frontend publik
+   - Menampilkan beranda, direktori sekolah, halaman detail, statistik, dan halaman about.
+2. Frontend admin
+   - Dipakai untuk login, edit data sekolah, upload gambar, dan sinkronisasi perubahan.
+3. Backend
+   - Menyediakan API publik.
+   - Menjalankan scraping DAPO.
+   - Mengelola login admin, upload storage, dan sitemap.
+4. Supabase
+   - Menyimpan data sekolah, data sinkronisasi, konten sekolah, dan file media.
 
-2. Pengembangan Frontend
-   - Membuat tampilan halaman utama.
-   - Menyusun komponen daftar sekolah dan detail sekolah.
-   - Menampilkan data statis dan dinamis secara konsisten.
+### Urutan kerja yang disarankan
 
-3. Pengembangan Backend
-   - Membuat scraper untuk mengambil data dari DAPO.
-   - Menyaring data sesuai sekolah yang ditampilkan di frontend.
-   - Menyimpan hasil scraping ke format JSON.
+1. Rapikan sumber data dan skema Supabase terlebih dahulu.
+2. Pastikan backend bisa login, sinkron, dan upload gambar dengan benar.
+3. Pastikan frontend membaca data dari Supabase dengan struktur yang konsisten.
+4. Baru sesuaikan tampilan atau konten tambahan jika data dasarnya sudah stabil.
 
-4. Integrasi dan Pengujian
-   - Menghubungkan frontend dengan data yang tersedia.
-   - Memastikan tampilan sesuai dengan kebutuhan user.
-   - Melakukan pengecekan data, tampilan, dan performa.
+## 3. Petunjuk Teknis
 
-5. Evaluasi dan Pelaporan
-   - Menyusun dokumentasi teknis.
-   - Menyajikan hasil kegiatan.
-   - Menetapkan langkah pengembangan lanjutan.
+### A. Prinsip kerja
 
-### Target Capaian
-- Tersedianya portal web yang menampilkan informasi sekolah secara rapi.
-- Minimal 4 sekolah tercantum dalam portal.
-- Data dasar sekolah dapat ditampilkan dengan format yang konsisten.
-- Sistem scraper dapat berjalan dan menghasilkan data yang relevan.
+- Bedakan data inti, data konten, dan data media.
+- Jangan mencampur logika scraping dengan logika CMS.
+- Kalau perubahan menyentuh banyak sekolah sekaligus, validasi dulu dampaknya.
 
-### Indikator Keberhasilan
-- Website dapat dibuka dan digunakan dengan baik.
-- Informasi sekolah dapat dilihat dari halaman utama dan halaman detail.
-- Data yang tampil sesuai dengan sumber yang digunakan.
-- Hasil kerja dapat dipresentasikan secara sistematis.
+### B. Backend
 
-### Penanggung Jawab
-- Koordinator Program
-- Pengembang Frontend
-- Pengembang Backend
-- Tim Dokumentasi dan Presentasi
+- `backend/src/index.ts`
+  - Route API, sitemap, login admin, sync admin, dan upload image.
+- `backend/src/scraper.ts`
+  - Scrape DAPO, parsing HTML, simpan catalog, dan update Supabase.
+- `backend/src/supabase.ts`
+  - Semua operasi database, storage, login admin, dan session token.
+- `backend/src/types.ts`
+  - Struktur data yang dipakai antar modul.
+- `backend/data/school-list.json`
+  - Daftar target sekolah untuk scraper.
 
-### Estimasi Waktu
-- Persiapan: 1 minggu
-- Pengembangan: 2–3 minggu
-- Pengujian dan evaluasi: 1 minggu
+### C. Frontend
 
----
+- `src/app/routes.ts`
+  - Daftar halaman yang tersedia.
+- `src/app/cms/school-cms.tsx`
+  - Load data sekolah, login admin, sync, dan upload gambar.
+- `src/app/data/schools.ts`
+  - Bentuk data utama sekolah di frontend.
+- `src/app/pages/Admin.tsx`
+  - UI edit konten sekolah.
+- `src/app/pages/SchoolDetail.tsx`
+  - Halaman detail sekolah yang paling lengkap.
 
-## 3. Petunjuk Teknis (Juknis)
+### D. Data yang perlu dijaga
 
-### A. Tujuan Juknis
-Juknis ini digunakan sebagai acuan teknis dalam pelaksanaan program agar seluruh tim memiliki arah kerja yang sama.
+- Identitas sekolah: `slug`, `npsn`, `name`.
+- Data ringkas: alamat, status, akreditasi, tahun berdiri, kontak.
+- Data statistik: siswa, guru, rombel, fasilitas.
+- Konten sekolah: kepala sekolah, staf, guru, prestasi, berita, galeri.
+- Media: gambar hero, card, foto personel, dan galeri.
 
-### B. Ruang Lingkup Juknis
-Juknis ini mencakup:
-- alur kerja tim,
-- standar pengembangan aplikasi,
-- format data yang digunakan,
-- mekanisme pengujian,
-- tata cara dokumentasi hasil.
+### E. Kriteria perubahan pertama yang aman
 
-### C. Tata Cara Pelaksanaan
+1. Jika data sekolah belum stabil, ubah backend dan Supabase dulu.
+2. Jika data sudah stabil, baru ubah tampilan frontend.
+3. Jika konten berita yang berubah, WordPress bisa dipisahkan dari CMS sekolah.
+4. Jika hanya satu sekolah yang terdampak, cek session admin dan relasi sekolahnya.
 
-#### 1. Pengumpulan Data
-- Data sekolah diambil dari sumber yang sudah ditentukan.
-- Data yang digunakan harus relevan dan dapat dipertanggungjawabkan.
-- Jika data tidak tersedia dari sumber utama, gunakan data pendukung yang sesuai.
+## 4. Juknis singkat untuk tim
 
-#### 2. Pengembangan Frontend
-- Gunakan struktur tampilan yang sederhana, rapi, dan responsif.
-- Pastikan setiap halaman memuat informasi utama dengan jelas.
-- Perhatikan konsistensi warna, tulisan, dan penempatan elemen.
+### Untuk sekretaris desa
 
-#### 3. Pengembangan Backend
-- Gunakan scraper untuk mengambil data secara sistematis.
-- Pastikan proses scraping hanya mengambil field yang relevan.
-- Simpan hasil scraping dalam format yang terstruktur dan mudah dipakai frontend.
+- Prioritaskan perubahan yang tidak merusak struktur data sekolah.
+- Pastikan ada pemisahan antara data publik, konten desa, dan konten operator.
+- Minta penjelasan dampak sebelum menyetujui perubahan besar.
 
-#### 4. Pengujian
-- Lakukan uji tampilan pada berbagai ukuran layar.
-- Periksa apakah data yang tampil sesuai dengan yang diharapkan.
-- Pastikan aplikasi tidak mengalami error saat diakses.
+### Untuk operator
 
-#### 5. Dokumentasi
-- Simpan hasil kerja dalam folder proyek yang rapi.
-- Dokumentasikan perubahan penting pada kode dan data.
-- Siapkan ringkasan hasil untuk presentasi.
+- Gunakan backend dan CMS untuk perubahan yang menyangkut data sekolah.
+- Gunakan upload image melalui jalur backend, bukan menyimpan manual ke storage.
+- Cek kembali sekolah yang dipilih sebelum menyimpan perubahan.
 
-### D. Standar Kualitas
-- Tampilan rapi dan mudah dipahami.
-- Informasi lengkap namun tidak berlebihan.
-- Data akurat dan konsisten.
-- Aplikasi berjalan stabil.
+### Untuk pengembang
 
-### E. Ketentuan Tambahan
-- Seluruh tim wajib menjaga kualitas kerja dan komunikasi yang baik.
-- Setiap perubahan besar harus dicatat dan diinformasikan kepada tim.
-- Pengembangan lanjutan dapat dilakukan setelah tahap evaluasi selesai.
+- Jaga tipe data frontend dan backend tetap konsisten.
+- Bila menambah fitur baru, tentukan dulu apakah masuk `schools`, tabel relasional, atau storage.
+- Dokumentasikan perubahan besar di folder `guidelines/`.
 
----
-
-## 4. Format Presentasi Singkat
-
-### Judul Presentasi
-Portal Informasi Sekolah Dasar Berbasis Data DAPO
-
-### Isi Presentasi Singkat
-1. Latar belakang masalah.
-2. Tujuan pembangunan website.
-3. Fitur utama yang tersedia.
-4. Proses pengembangan.
-5. Hasil yang telah dicapai.
-6. Rencana pengembangan ke depan.
-
-### Penutup
-Proyek ini diharapkan menjadi solusi sederhana namun bermanfaat dalam menghadirkan informasi sekolah secara digital, modern, dan mudah diakses oleh masyarakat.

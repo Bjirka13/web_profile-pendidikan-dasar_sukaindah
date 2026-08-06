@@ -1,37 +1,44 @@
 # Keyword Index
 
-Use these keywords to refer back to the repo audit quickly.
+Gunakan keyword ini untuk merujuk bagian dokumentasi dengan cepat.
 
 ## Keywords
 
-- `FLOW-FRONTEND`
-  - Frontend app is a Vite React bundle.
-  - Main pages read from local data in `src/app/data/schools.ts`.
-  - `Home`, `Schools`, and `SchoolDetail` do not fetch school data from backend.
+- `DOC-START`
+  - Mulai baca dari `guidelines/README.md`.
+  - Menjelaskan keputusan awal yang perlu dilihat sekretaris desa dan operator.
+
+- `DOC-BACKEND`
+  - Rujuk ke `guidelines/backend.md`.
+  - Fokus pada API, scraper, Supabase, upload, dan `.env`.
+
+- `DOC-FRONTEND`
+  - Rujuk ke `guidelines/frontend.md`.
+  - Fokus pada route, page, CMS provider, dan `.env` frontend.
 
 - `FLOW-BACKEND`
-  - Backend is a separate scraper/API service in `backend/`.
-  - Endpoints exist in `backend/src/index.ts`:
-    - `GET /api/health`
-    - `GET /api/schools`
-    - `GET /api/schools/:npsn`
-    - `POST /api/sync`
-  - Scraping logic is in `backend/src/scraper.ts`.
+  - Backend ada di `backend/`.
+  - Route utama ada di `backend/src/index.ts`.
+  - Scraping inti ada di `backend/src/scraper.ts`.
+  - Integrasi Supabase ada di `backend/src/supabase.ts`.
 
-- `STATIC-DATA`
-  - School profiles, staff, facilities, achievements, news, and gallery are hardcoded in `src/app/data/schools.ts`.
-  - Home hero, kepala desa section, and schools directory are also static/local.
-  - `About` is intentionally static.
+- `FLOW-FRONTEND`
+  - Frontend ada di `src/`.
+  - Router ada di `src/app/routes.ts`.
+  - CMS state dan mapping data ada di `src/app/cms/school-cms.tsx`.
+  - Halaman utama ada di `src/app/pages/`.
 
-- `WORDPRESS-DYNAMIC`
-  - The only runtime fetch in frontend is `WordPressPosts`.
-  - It reads `VITE_WORDPRESS_URL` and fetches WordPress posts from `/wp-json/wp/v2/posts?per_page=3`.
+- `ENV-BACKEND`
+  - Variabel penting backend: `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `DAPO_BASE_URL`, `SITE_URL`, `ADMIN_SESSION_SECRET`, `ADMIN_PASSWORD_SALT`.
 
-- `STATS-RISK`
-  - `src/app/components/StatsSection.tsx` references `SEMESTER_STATS`.
-  - The source definition is commented out, so this is a runtime-risk area to revisit if stats need to stay active.
+- `ENV-FRONTEND`
+  - Variabel penting frontend: `VITE_BACKEND_URL`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_STORAGE_BUCKET`, `VITE_WORDPRESS_URL`.
+
+- `CONTENT-SPLIT`
+  - WordPress hanya untuk artikel beranda lewat `WordPressPosts`.
+  - Konten sekolah utama dikelola lewat Supabase dan CMS frontend.
 
 ## Notes
 
-- When you say one of the keywords above, I will use this mapping as the reference point.
-- If you want a new keyword added later, use a short uppercase label and I will extend this file.
+- Saat keyword dipakai, saya akan pakai file dokumen yang sesuai sebagai referensi utama.
+- Kalau perlu keyword baru, cukup pakai label singkat huruf besar.
